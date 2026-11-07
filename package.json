@@ -1,5 +1,7 @@
 {
-  "name": "os-inventory-auth-tests", "version": "0.1.0-pretest.1", "private": true,
-  "scripts": { "test": "node tests/run.cjs" },
+  "name": "os-inventory-tests",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": { "test": "node tests/run.cjs", "test:ui": "node tests/ui_spec.cjs" },
   "devDependencies": { "wasmoon": "1.16.0" }
 }

@@ -1,6 +1,7 @@
 /inventory_data.json
 /inventory_backup.json
-/data/
+/data/*
+!/data/.gitkeep
 /.tools/
 /node_modules/
 .env

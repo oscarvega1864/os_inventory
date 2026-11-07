@@ -14,6 +14,8 @@ async function main() {
     }
   }
   scan('');
+  const manifest=fs.readFileSync(path.join(root,'fxmanifest.lua'),'utf8');
+  for (const match of manifest.matchAll(/'([^']+\.(?:lua|html|css|js|svg)|data\/\.gitkeep)'/g)) assert(fs.existsSync(path.join(root,match[1])),`Missing manifest path: ${match[1]}`);
   for (const file of files) await factory.mountFile('/repo/'+file,fs.readFileSync(path.join(root,file)));
   const lua = await factory.createEngine({enableProxy:false});
   try {
@@ -50,9 +52,14 @@ async function main() {
       `);
     }
     lua.global.set('__files',files);
-    lua.global.set('__report',(name,ok,err)=>console.log(`${ok?'PASS':'FAIL'} ${name}${ok?'':': '+err}`));
+    let passed=0,failed=0;
+    lua.global.set('__report',(name,ok,err)=>{ok?passed++:failed++;console.log(`${ok?'PASS':'FAIL'} ${name}${ok?'':': '+err}`);});
     await lua.doFile('/repo/tests/admin_access_spec.lua');
+    await lua.doFile('/repo/tests/inventory_spec.lua');
+    await lua.doFile('/repo/tests/wiring_spec.lua');
+    await lua.doFile('/repo/tests/client_spec.lua');
     assert.equal(lua.global.get('__failures'),0);
+    assert.equal(failed,0);console.log(`Inventory total: ${passed} passed, ${failed} failed`);
   } finally { lua.global.close(); }
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

@@ -1,17 +1,23 @@
 # Changelog
 
+## 0.1.0 — Inventario standalone
+
+- Modelo separado de economía y activos: inventarios con ID, propietario estable, capacidad en gramos, slots y revisiones; catálogo configurable con los nueve objetos solicitados.
+- Proveedores explícitos de identidad: Devtools 0.1.3 o standalone por license validada. Sin dependencia obligatoria ni fallback silencioso. Cambio de personaje invalida sesiones; no se usan alias ni server IDs como propietarios permanentes.
+- Añadir, retirar, consultar, mover, apilar, intercambiar, dividir, consumir agua/comida, entregar, soltar y recoger. Objetos individuales/metadatos tienen identidad de servidor y no se apilan.
+- Entregas y recogidas confirmadas mediante una sola escritura del estado completo, con validación de distancia, bucket, salud, transferencia, cantidad y capacidad. Objetos en suelo persistentes y cajas locales cosméticas gestionadas por proximidad.
+- Sesiones ligadas al personaje, secuencias, respuestas deduplicadas, revisión e ID de pila esperados, exclusión de transacciones y límites de frecuencia. Retirada de los eventos pretest sin ese contrato.
+- NUI original en web/: F2 configurable, selección y detalle, pesos/capacidad, división, arrastre, entrega y recogida. ESC, timeout, cambio de personaje y parada liberan foco; no toma foco sobre otra NUI.
+- Mantiene ACE y autorización OSCAR osinventory.admin; añade clearinventory con confirmación de misma revisión en 30 s y auditoría. /daritem admite varias pilas en una sola transacción.
+- Exports solo servidor con lista explícita de recursos/operaciones/items, callbacks de uso no consumibles e IDs de operación persistentes para reintentos de altas/retiradas.
+- Migración v1 → v2 conserva el origen y un respaldo exacto antes de activar snapshots alternos; resuelve aliases heredados sin mezclar propietarios. Corrupción, identidad ambigua, datos incompatibles y escritura fallida bloquean sin vaciar inventarios.
+- Se conserva la corrección de SaveResourceFile: longitud en bytes, resultado true/1 y lectura de verificación. No se toca inventario real durante las pruebas.
+- 38 casos Lua 5.4 pasan con códec de desarrollo y dkjson local; 8 escenarios de Chromium con transporte simulado. Validación de rutas del manifiesto y sintaxis. Pendiente ejecutar FiveM/CEF/OneSync, props y escritura mediante junction.
+- Las tablets G6 y CCTV siguen siendo únicamente objetos; no se desarrolla su lógica ni se modifica OS Security. Sin push.
+
 ## 0.1.0-pretest.1 — Adaptador administrativo OSCAR
 
-- Contrato existente `osinventory.admin` verificado en manifiesto y servidor
-  antes de modificar el recurso. Se mantienen los tres comandos y sus sintaxis.
-- Adaptador opcional a `os_devtools:HasOscarPermission`; conserva consola y ACE
-  nativo, acepta solo `true`/`1` del native y `true` literal del proveedor.
-- Un usuario normal no puede autorizarse mediante el retorno numérico `0`.
-  Revocaciones, recurso detenido, errores o export ausente deniegan delegaciones.
-- Perfiles de Inventory separados del resto de OSCAR. No se modifican ítems,
-  identidad RP, persistencia, NUI ni los exports de objetos de la versión pretest.
-- Nueve pruebas automatizadas del adaptador y de giveitem/removeitem/inspectinventory
-  pasan con dos códecs de desarrollo. Pendiente validación real en FiveM.
-
-Las funcionalidades y la revisión completa de la fase 0.1.0 permanecen pendientes;
-este hotfix no afirma completar esa fase ni activa las tablets de Gruppe Sechs.
+- Se verificó el contrato osinventory.admin antes de integrar el broker opcional.
+- Consola y ACE true/1 compatibles; solo true literal del proveedor delegado.
+- Revocaciones, proveedor detenido, export ausente y retorno nativo 0 deniegan acceso.
+- Nueve pruebas iniciales del hotfix con comandos pretest y dos códecs de desarrollo. Las funcionalidades generales del inventario permanecían pendientes en aquella entrega.

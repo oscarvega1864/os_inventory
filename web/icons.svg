@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="water" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M19 5h10v7l4 6v23H15V18l4-6zM15 23h18M19 5V2h10v3M15 35h18"/><path d="M24 23s-5 5-5 8a5 5 0 0 0 10 0c0-3-5-8-5-8z"/></g></symbol>
+<symbol id="food" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 19c0-16 32-16 32 0zM7 24h34M9 29h30v8H9zM7 40h34M16 15l2-2m8 1 2-2m4 3 2-2"/></g></symbol>
+<symbol id="phone" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="13" y="4" width="22" height="40" rx="4"/><path d="M13 11h22M13 37h22M21 41h6"/></g></symbol>
+<symbol id="tool" viewBox="0 0 48 48"><path d="m28 6 2 10 9 2 5-7c4 12-6 20-15 17L13 44l-9-9 16-16C17 10 22 4 28 6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+<symbol id="card" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="40" height="27" rx="3"/><path d="M4 19h40M9 29h12M9 33h8M30 29h8"/></g></symbol>
+<symbol id="tablet" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="9" width="40" height="30" rx="3"/><path d="M9 14h29v20H9M41 21v6M15 24l5 5 12-12"/></g></symbol>
+<symbol id="box" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m24 4 19 10v22L24 46 5 36V14zM5 14l19 11 19-11M24 25v21M15 9l19 11v8"/></g></symbol>
+</defs></svg>
