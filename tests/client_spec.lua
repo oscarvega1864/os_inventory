@@ -43,7 +43,7 @@ test('Actual client wiring owns focus only after server authorization and releas
     TriggerServerEvent=function(name,...) f.sent[#f.sent+1]={name=name,args={...}} end
     TriggerEvent=function() end
     RegisterCommand=function(name,fn) f.commands[name]=fn end
-    RegisterKeyMapping=function(name,_,kind,key) assert(name=='inventario' and kind=='keyboard' and key=='F2') end
+    RegisterKeyMapping=function(name,_,kind,key) assert(name=='inventario' and kind=='keyboard' and key=='I') end
     RegisterNetEvent=function(name,fn) f.net[name]=fn end
     RegisterNUICallback=function(name,fn) f.nui[name]=fn end
     AddEventHandler=function(name,fn) f.events[name]=fn end

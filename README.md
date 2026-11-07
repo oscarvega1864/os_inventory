@@ -21,7 +21,7 @@ En standalone se usa `standalone:license:…`, sin crear personajes ni copiar ec
 
 ## Uso
 
-Abrir/cerrar con **F2** o `/inventario`. La tecla se puede reasignar desde FiveM; su valor inicial está en `config/client.lua`. Se abre solo después de recibir autorización y datos reales del servidor, sin adquirir foco encima de otra NUI. ESC, cambio de personaje, parada, desconexión, muerte, error de comunicación o falta de heartbeat liberan el foco.
+Abrir/cerrar con **I** o `/inventario`. La tecla se puede reasignar desde FiveM; su valor inicial está en `config/client.lua`. Se abre solo después de recibir autorización y datos reales del servidor, sin adquirir foco encima de otra NUI. ESC, cambio de personaje, parada, desconexión, muerte, error de comunicación o falta de heartbeat liberan el foco.
 
 - Seleccionar un slot muestra descripción, cantidad, peso y metadatos.
 - Ajustar la cantidad y arrastrar a otro slot o pulsar un slot vacío mueve esa cantidad. Las pilas compatibles se apilan; pilas completas incompatibles se intercambian.
@@ -36,7 +36,7 @@ No hay objetos de muestra en ejecución real. `telefono`, herramientas, tarjetas
 
 | Comando | Acceso |
 | --- | --- |
-| `/inventario` | Personal; tecla F2 configurable. |
+| `/inventario` | Personal; tecla I configurable. |
 | `/daritem <idJugador> <item> <cantidad>` | Personal; admite varias pilas, conserva identidades/metadatos y confirma toda la entrega en una sola transacción. |
 | `/giveitem <idJugador\|personaje> <item> <cantidad>` | `osinventory.admin`; crea únicamente objetos definidos. |
 | `/removeitem <idJugador\|personaje> <item> <cantidad>` | `osinventory.admin`; rechaza cantidades no disponibles. |
@@ -143,7 +143,7 @@ npm.cmd run test:ui
 Pendiente validación real en FiveM con dos jugadores de prueba, IDs de ejemplo 1 y 2:
 
 1. Desde admin: `/giveitem 1 agua 8`, `/giveitem 1 comida 2`, `/giveitem 1 g6_client_tablet 1`. Desde jugador normal, los cuatro comandos administrativos deben denegarse; comprobar revocación del perfil mientras está conectado.
-2. Abrir con F2 y `/inventario`, seleccionar agua, indicar 3 y dividir: deben quedar 5 y 3. Arrastrar/apilar y comparar peso. ESC libera el ratón. Abrir otra NUI primero y comprobar que Inventory no toma foco.
+2. Abrir con I y `/inventario`, seleccionar agua, indicar 3 y dividir: deben quedar 5 y 3. Arrastrar/apilar y comparar peso. ESC libera el ratón. Abrir otra NUI primero y comprobar que Inventory no toma foco.
 3. Aproximar al jugador 2, entregar 2 desde la NUI o `/daritem 2 agua 2`. Alejarlo/cambiar bucket y verificar rechazo. Probar receptor lleno y objeto no transferible.
 4. Usar una comida: queda una menos. La tablet no abre ninguna aplicación. Soltar agua y recogerla con el otro jugador: una sola entrega, incluso con clic repetido. Confirmar caja, distancia y bucket en OneSync.
 5. Desconectar con NUI abierta, reconectar con otro ID temporal y comprobar cantidades/IDs. Cambiar personaje y confirmar inventario separado y cierre de sesión anterior.
