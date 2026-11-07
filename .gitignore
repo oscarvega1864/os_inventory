@@ -1,0 +1,10 @@
+/inventory_data.json
+/inventory_backup.json
+/data/
+/.tools/
+/node_modules/
+.env
+.env.*
+server.cfg
+*.log
+*.bak
