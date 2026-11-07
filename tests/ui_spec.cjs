@@ -50,6 +50,9 @@ async function main(){
   assert(await evaluate(`document.documentElement.scrollWidth<=960&&document.getElementById('inventory').getBoundingClientRect().height<=540`));
   fs.writeFileSync(path.join(output,'compact.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));console.log('PASS compact resolution remains scrollable and within viewport');
   await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))`);await until(`document.getElementById('inventory').hidden&&window.__calls.some(c=>c.endpoint==='close')`);console.log('PASS Escape invokes native close callback');
+  await evaluate(`window.__calls.length=0;window.postMessage({type:'open',inventory:window.__inv,toggleKey:'I'},'*')`);await until(`!document.getElementById('inventory').hidden`);
+  await evaluate(`document.getElementById('amount').dispatchEvent(new KeyboardEvent('keydown',{key:'i',bubbles:true}))`);assert(await evaluate(`!document.getElementById('inventory').hidden`));
+  await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown',{key:'i'}))`);await until(`document.getElementById('inventory').hidden&&window.__calls.some(c=>c.endpoint==='close')`);console.log('PASS toggle key closes UI except while typing');
   await evaluate(`window.__open()`);await until(`!document.getElementById('inventory').hidden`);await evaluate(`window.__fail=true;document.querySelector('[data-slot="1"]').click();document.getElementById('use').click()`);await until(`document.getElementById('inventory').hidden`);console.log('PASS transport failure closes UI');
   console.log(`Screenshots: ${path.relative(root,output)}`);
  }finally{socket?.close();child.kill();await new Promise(resolve=>server.close(resolve));}

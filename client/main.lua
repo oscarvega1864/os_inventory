@@ -13,7 +13,7 @@ local controller=OSInventory.Client.new({schedule=SetTimeout,canOpen=canOpen,not
     send=function(event,id,packet) TriggerServerEvent('osinventory:'..event,id,packet) end,
     close=function() TriggerServerEvent('osinventory:close') end,hide=hide,
     show=function(inventory)
-        heartbeat=GetGameTimer();focused=true;SetNuiFocus(true,true);SendNUIMessage({type='open',inventory=inventory})
+        heartbeat=GetGameTimer();focused=true;SetNuiFocus(true,true);SendNUIMessage({type='open',inventory=inventory,toggleKey=OSInventory.ClientConfig.Key})
     end,
     update=function(inventory) SendNUIMessage({type='update',inventory=inventory}) end})
 RegisterCommand('inventario',function() controller.toggle() end,false)

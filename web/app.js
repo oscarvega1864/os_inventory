@@ -60,10 +60,17 @@ $('use').addEventListener('click',()=>entryAction('use',{count:1}));
 $('split').addEventListener('click',()=>{const e=selectedEntry(),to=firstEmpty(),count=quantity();if(!e||!to||!count||count>=e.count){status('Para dividir, indica una cantidad menor que la pila.',true);return;}entryAction('move',{to});});
 $('give').addEventListener('click',()=>{const target=Number($('target').value);if(!Number.isSafeInteger(target)||target<1){status('Indica el ID del jugador próximo.',true);return;}entryAction('give',{target});});
 $('drop').addEventListener('click',()=>entryAction('drop'));
-window.addEventListener('keydown',event=>{if(event.key==='Escape'&&visible){event.preventDefault();close();}});
+// Con el foco en la NUI la tecla del juego no llega al cliente: la propia NUI cierra con ESC o con la tecla configurada.
+let toggleKey='';
+window.addEventListener('keydown',event=>{
+ if(!visible)return;
+ const typing=event.target instanceof HTMLInputElement;
+ const toggle=!typing&&!event.repeat&&toggleKey!==''&&event.key.toLowerCase()===toggleKey;
+ if(event.key==='Escape'||toggle){event.preventDefault();close();}
+});
 window.addEventListener('message',event=>{const data=event.data;if(!data||typeof data!=='object')return;
  if(data.type==='close'){visible=false;epoch++;busy=false;inventory=null;selected=null;$('inventory').hidden=true;}
- if((data.type==='open'||data.type==='update')&&data.inventory){if(data.type==='open'){epoch++;selected=null;busy=false;visible=true;$('inventory').hidden=false;status('Cambios guardados por el servidor');}if(visible){inventory=data.inventory;render();}}
+ if((data.type==='open'||data.type==='update')&&data.inventory){if(data.type==='open'){toggleKey=typeof data.toggleKey==='string'?data.toggleKey.toLowerCase():'';epoch++;selected=null;busy=false;visible=true;$('inventory').hidden=false;status('Cambios guardados por el servidor');}if(visible){inventory=data.inventory;render();}}
 });
 window.addEventListener('error',()=>{if(visible)close();});
 window.addEventListener('unhandledrejection',()=>{if(visible)close();});
