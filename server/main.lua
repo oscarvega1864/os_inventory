@@ -103,7 +103,11 @@ local function transaction(op,cb)
  state=copy
  return true
 end
-local function admin(src) return src==0 or IsPlayerAceAllowed(src,'osinventory.admin') end
+local admin=OSInventoryAdminAccess.new({
+ ace=IsPlayerAceAllowed,state=GetResourceState,
+ permission=OSInventoryAuthorization.Permission,resource=OSInventoryAuthorization.Resource,
+ delegate=function(resource,src,permission) return exports[resource]:HasOscarPermission(src,permission) end
+})
 local function snapshot(src)
  local id=identifier(src)
  if not id then return notify(src,'Identidad no disponible. Comprueba os_devtools.') end
@@ -122,7 +126,7 @@ RegisterCommand('inventario',function(src)
  if src>0 then TriggerClientEvent('osinventory:toggle',src) end
 end,false)
 RegisterCommand('giveitem',function(src,args)
- if not admin(src) then return notify(src,'Sin permiso ACE osinventory.admin.') end
+ if not admin(src) then return notify(src,'Sin autorizacion efectiva osinventory.admin. Consulta /ospermisos.') end
  local id=targetId(args[1]);local name=args[2];local count=positive(args[3])
  if not id or not OSItems[name] or not count then return notify(src,'Uso: /giveitem <idJugador|alias> <item> <cantidad>') end
  local ok,err=transaction('giveitem',function(d)
@@ -135,7 +139,7 @@ RegisterCommand('giveitem',function(src,args)
  if ok then refreshOwners({[id]=true}) end
 end,false)
 RegisterCommand('removeitem',function(src,args)
- if not admin(src) then return notify(src,'Sin permiso ACE osinventory.admin.') end
+ if not admin(src) then return notify(src,'Sin autorizacion efectiva osinventory.admin. Consulta /ospermisos.') end
  local id=targetId(args[1]);local name=args[2];local count=positive(args[3])
  if not id or not OSItems[name] or not count then return notify(src,'Uso: /removeitem <jugador|alias> <item> <cantidad>') end
  local ok,err=transaction('removeitem',function(d) return remove(inv(d,id),name,count) end)
@@ -143,7 +147,7 @@ RegisterCommand('removeitem',function(src,args)
  if ok then refreshOwners({[id]=true}) end
 end,false)
 RegisterCommand('inspectinventory',function(src,args)
- if not admin(src) then return notify(src,'Sin permiso ACE osinventory.admin.') end
+ if not admin(src) then return notify(src,'Sin autorizacion efectiva osinventory.admin. Consulta /ospermisos.') end
  local id=targetId(args[1]);if not id then return notify(src,'Uso: /inspectinventory <jugador|alias>') end
  local i=state.inventories[id] or {slots={}}
  local values={};for slot,v in pairs(i.slots) do values[#values+1]=slot..':'..v.name..' x'..v.count end
