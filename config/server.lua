@@ -8,12 +8,12 @@ OSInventory.Config={
     Identity={Provider='os_devtools',Resource='os_devtools'},
     -- Recursos de servidor autorizados por operacion e item.
     -- os_security: solo actua si su convar ossecurity_items=os_inventory; lee, cobra/devuelve materiales
-    -- de instalacion, entrega/migra sus objetos y abre las tablets con "Usar".
+    -- de instalacion, entrega/migra sus objetos y abre tablets o la instalacion CCTV con "Usar".
     ResourceAccess={
         os_security={read=true,
             writeItems={g6_client_tablet=true,g6_operations_tablet=true,os_cctv_kit=true,os_alarm_kit=true,os_lock_kit=true,
                 os_tracker_kit=true,os_drill=true,os_screwdriver=true,os_battery=true},
-            useItems={g6_client_tablet=true,g6_operations_tablet=true}}
+            useItems={g6_client_tablet=true,g6_operations_tablet=true,os_cctv_kit=true}}
     },
     DropModel='prop_cs_cardbox_01'
 }

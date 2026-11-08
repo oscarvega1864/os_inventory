@@ -136,7 +136,8 @@ test('os_security access covers only its own items and tablet use',function()
     -- Referencia invocable entre recursos (tabla con __call), como la entrega FiveM a traves de exports.
     local used=0;local funcref=setmetatable({},{__call=function(_,src,context) assert(src==1 and context.item.name=='g6_client_tablet');used=used+1 end})
     assert(f.service.register('os_security','g6_client_tablet',funcref))
-    assert(not f.service.register('os_security','os_cctv_kit',function() end))
+    assert(f.service.register('os_security','os_cctv_kit',function() end))
+    assert(not f.service.register('os_security','os_drill',function() end))
     assert(not f.service.register('os_security','g6_operations_tablet',{}))
     assert(f.add(1,'g6_client_tablet',1));local o=f.open(1);local slot
     for key,entry in pairs(f.inv(1).slots) do if entry.name=='g6_client_tablet' then slot=tonumber(key) end end
