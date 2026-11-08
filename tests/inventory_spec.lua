@@ -127,6 +127,22 @@ test('External exports default deny and explicit per-item rules preserve permiss
     assert(not f.service.api('partner','AddItem','oschar_0000000001','telefono',1));assert(not f.service.api(nil,'AddItem','oschar_0000000001','agua',1))
     assert(not f.service.api('partner','AddItem','oschar_9999999999','agua',1));assert(not f.service.api('partner','AddItem','1','agua',1))
 end)
+test('os_security access covers only its own items and tablet use',function()
+    local f=fixture();f.service.api('os_security','GetItemCount','oschar_0000000001','agua')
+    assert(f.service.api('os_security','AddItem','oschar_0000000001','os_cctv_kit',2,nil,'g6-test:add'))
+    assert(f.service.api('os_security','RemoveItem','oschar_0000000001','os_cctv_kit',1,nil,'g6-test:take'))
+    assert(f.service.api('os_security','GetItemCount','oschar_0000000001','os_cctv_kit')==1)
+    assert(not f.service.api('os_security','AddItem','oschar_0000000001','agua',1))
+    -- Referencia invocable entre recursos (tabla con __call), como la entrega FiveM a traves de exports.
+    local used=0;local funcref=setmetatable({},{__call=function(_,src,context) assert(src==1 and context.item.name=='g6_client_tablet');used=used+1 end})
+    assert(f.service.register('os_security','g6_client_tablet',funcref))
+    assert(not f.service.register('os_security','os_cctv_kit',function() end))
+    assert(not f.service.register('os_security','g6_operations_tablet',{}))
+    assert(f.add(1,'g6_client_tablet',1));local o=f.open(1);local slot
+    for key,entry in pairs(f.inv(1).slots) do if entry.name=='g6_client_tablet' then slot=tonumber(key) end end
+    assert(f.request(1,o,'use',f.args(1,slot,1)).ok and used==1)
+    for _,name in ipairs({'os_alarm_kit','os_lock_kit','os_tracker_kit','os_drill','os_screwdriver','os_battery'}) do assert(OSItems[name],name) end
+end)
 test('Durable export operation receipts survive restarts and reject changed payloads',function()
     local f=fixture();assert(f.add(1,'agua',2,nil,'add-1'));assert(f.add(1,'agua',2,nil,'add-1'));assert(f.count(1,'agua')==2)
     assert(not f.add(1,'agua',3,nil,'add-1'));local g=fixture({files=f.files});assert(g.add(1,'agua',2,nil,'add-1'));assert(g.count(1,'agua')==2)

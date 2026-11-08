@@ -6,7 +6,14 @@ OSInventory.Config={
     SessionSeconds=90, RequestsPerWindow=30, WindowSeconds=10,
     -- Seleccion explicita: no cambia a standalone si el proveedor esta detenido.
     Identity={Provider='os_devtools',Resource='os_devtools'},
-    -- Recursos de servidor autorizados por operacion e item. Vacio por defecto.
-    ResourceAccess={},
+    -- Recursos de servidor autorizados por operacion e item.
+    -- os_security: solo actua si su convar ossecurity_items=os_inventory; lee, cobra/devuelve materiales
+    -- de instalacion, entrega/migra sus objetos y abre las tablets con "Usar".
+    ResourceAccess={
+        os_security={read=true,
+            writeItems={g6_client_tablet=true,g6_operations_tablet=true,os_cctv_kit=true,os_alarm_kit=true,os_lock_kit=true,
+                os_tracker_kit=true,os_drill=true,os_screwdriver=true,os_battery=true},
+            useItems={g6_client_tablet=true,g6_operations_tablet=true}}
+    },
     DropModel='prop_cs_cardbox_01'
 }

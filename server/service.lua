@@ -243,8 +243,14 @@ function OSInventory.Service.new(options)
             return ok,err
         end)
     end
+    -- Desde otro recurso, FiveM entrega la funcion como referencia invocable (tabla con __call), no como 'function'.
+    local function callable(value)
+        if type(value)=='function' then return true end
+        local meta=type(value)=='table' and getmetatable(value)
+        return type(meta)=='table' and meta.__call~=nil
+    end
     function service.register(caller,name,callback)
-        if not OSItems[name] or OSItems[name].builtinUse or not permitted(caller,'useItems',name) or type(callback)~='function' or usable[name] then return false end
+        if not OSItems[name] or OSItems[name].builtinUse or not permitted(caller,'useItems',name) or not callable(callback) or usable[name] then return false end
         usable[name]={resource=caller,fn=callback};return true
     end
     function service.resourceStopped(resource)
