@@ -11,9 +11,9 @@ OSInventory.Config={
     -- de instalacion, entrega/migra sus objetos y abre tablets o la instalacion CCTV con "Usar".
     ResourceAccess={
         os_security={read=true,
-            writeItems={g6_client_tablet=true,g6_operations_tablet=true,os_cctv_kit=true,os_cctv_kit_mini=true,os_cctv_kit_dome=true,os_alarm_kit=true,os_alarm_kit_panel=true,os_lock_kit=true,
+            writeItems={g6_client_tablet=true,g6_operations_tablet=true,os_cctv_kit=true,os_cctv_kit_mini=true,os_cctv_kit_dome=true,os_alarm_kit=true,os_alarm_kit_panel=true,os_lock_kit=true,os_lock_kit_high=true,
                 os_tracker_kit=true,os_drill=true,os_screwdriver=true,os_battery=true,g6_alarm_tag=true},
-            useItems={g6_client_tablet=true,g6_operations_tablet=true,os_cctv_kit=true,os_cctv_kit_mini=true,os_cctv_kit_dome=true,os_alarm_kit=true,os_alarm_kit_panel=true,g6_alarm_tag=true}}
+            useItems={g6_client_tablet=true,g6_operations_tablet=true,os_cctv_kit=true,os_cctv_kit_mini=true,os_cctv_kit_dome=true,os_alarm_kit=true,os_alarm_kit_panel=true,os_lock_kit=true,os_lock_kit_high=true,g6_alarm_tag=true}}
     },
     DropModel='prop_cs_cardbox_01'
 }
