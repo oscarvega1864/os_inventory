@@ -35,6 +35,7 @@ local function boot()
         log=function(message) print('[os_inventory] '..message) end})
     if service.start() then print('[os_inventory] v'..c.Version..' iniciado; proveedor '..c.Identity.Provider..'.')
     else print('[os_inventory] ERROR: almacenamiento bloqueado; no se habilitan operaciones.') end
+    if OSInventory.AdminRuntime then OSInventory.AdminSection.publish(OSInventory.AdminRuntime) end
 end
 AddEventHandler('onResourceStart',function(name) if name==resource then boot() end end)
 RegisterNetEvent('osinventory:open',function(requestId)
@@ -96,6 +97,10 @@ for _,name in ipairs({'GetInventory','GetItemCount','HasItem','CanCarryItem','Ad
         return ok,result
     end)
 end
+-- Panel y consola de os_admin (opcional).
+local adminSection={service=function() return service end,invalidate=invalidate}
+OSInventory.AdminRuntime=adminSection
+AddEventHandler('os_admin:ready',function() OSInventory.AdminSection.publish(adminSection) end)
 exports('RegisterUsableItem',function(name,callback)
     return service and service.register(GetInvokingResource(),name,callback) or false
 end)

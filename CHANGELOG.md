@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- Sección **Objetos e inventario** para el panel y la consola de `os_admin` (opcional): dar y quitar objetos del catálogo, ver el inventario de un personaje (huecos, cantidades y peso), vaciarlo con confirmación y consultar el catálogo. Usa la misma ruta administrativa que `/giveitem`, `/removeitem`, `/inspectinventory` y `/clearinventory`.
+
 ## 0.1.0 — Inventario standalone
 
 - Modelo separado de economía y activos: inventarios con ID, propietario estable, capacidad en gramos, slots y revisiones; catálogo configurable con los nueve objetos solicitados.

@@ -9,7 +9,7 @@ server_scripts {
  'config/server.lua', 'config/authorization.lua', 'server/lib/util.lua',
  'server/storage/codec.lua', 'server/storage/resource_files.lua', 'server/storage/json.lua',
  'server/identity.lua', 'server/domain.lua', 'server/store.lua', 'server/service.lua',
- 'server/admin_access.lua', 'server/main.lua'
+ 'server/admin_access.lua', 'server/admin_section.lua', 'server/main.lua'
 }
 client_scripts { 'config/client.lua', 'client/controller.lua', 'client/main.lua' }
 ui_page 'web/index.html'

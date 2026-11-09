@@ -20,7 +20,7 @@ local function fixture()
         ResolveCharacter=function(_,query) local p=f.identity.resolve(query);return p and {characterId=p.characterId,alias=p.alias} end,
         HasOscarPermission=function(_,src,permission) return src==2 and permission=='osinventory.admin' and f.delegated==true end}},
         {__call=function(_,name,fn) f.exports[name]=fn end})
-    dofile('/repo/config/authorization.lua');dofile('/repo/server/admin_access.lua');dofile('/repo/server/main.lua');f.events.onResourceStart('os_inventory')
+    dofile('/repo/config/authorization.lua');dofile('/repo/server/admin_access.lua');dofile('/repo/server/admin_section.lua');dofile('/repo/server/main.lua');f.events.onResourceStart('os_inventory')
     function f.countNative(src,name) f.origin='os_inventory';return f.exports.GetItemCount(string.format('oschar_%010d',src),name) end
     return f
 end
@@ -54,4 +54,17 @@ test('Player command transfers across multiple stacks in one journal mutation an
     local f=fixture();f.commands.giveitem(1,{'1','agua','25'});f.commands.daritem(1,{'2','agua','23'})
     assert(f.countNative(1,'agua')==2 and f.countNative(2,'agua')==23)
     f.commands.daritem(2,{'3','agua','1'});assert(f.countNative(2,'agua')==23)
+end)
+test('Admin panel section gives, removes, inspects and clears through the audited admin path',function()
+    local f=fixture();local section=OSInventory.AdminSection.build(OSInventory.AdminRuntime)
+    local actions={};for _,a in ipairs(section.actions) do actions[a.id]=a end
+    assert(section.id=='objetos' and #actions.dar.fields[2].options>=10)
+    local given=actions.dar.handler(1,{destino='2',objeto='agua',cantidad=3});assert(given.ok,given.message);assert(f.countNative(2,'agua')==3)
+    local invalidated=false;for _,m in ipairs(f.messages) do if m.name=='osinventory:invalidated' then invalidated=true end end;assert(invalidated)
+    local seen=actions.ver.handler(1,{destino='2'});assert(seen.ok and seen.rows[1][3]=='agua' and seen.rows[1][4]==3)
+    assert(actions.quitar.handler(1,{destino='2',objeto='agua',cantidad=1}).ok and f.countNative(2,'agua')==2)
+    assert(not actions.quitar.handler(1,{destino='2',objeto='agua',cantidad=50}).ok)
+    assert(not actions.dar.handler(2,{destino='2',objeto='agua',cantidad=1}).ok) -- sin osinventory.admin
+    assert(actions.vaciar.handler(1,{destino='2'}).ok and f.countNative(2,'agua')==0)
+    assert(actions.catalogo.handler(0,{}).ok)
 end)
