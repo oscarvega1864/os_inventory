@@ -9,7 +9,7 @@ async function rpc(name,data={}){
  finally{clearTimeout(timer);}
 }
 function status(message,error=false){$('status').textContent=message;$('status').dataset.error=String(error);}
-function close(){visible=false;epoch++;inventory=null;selected=null;busy=false;$('inventory').hidden=true;rpc('close').catch(()=>{});}
+function close(){if(drag){drag.ghost?.remove();drag=null;}visible=false;epoch++;inventory=null;selected=null;busy=false;$('inventory').hidden=true;rpc('close').catch(()=>{});}
 function itemIcon(key){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');const use=document.createElementNS(svg.namespaceURI,'use');use.setAttribute('href',`icons.svg#${allowedIcons.has(key)?key:'box'}`);svg.append(use);return svg;}
 function selectedEntry(){return inventory?.slots[String(selected)]??null;}
 function render(){
@@ -24,12 +24,9 @@ function render(){
   button.type='button';button.className=`slot${e?'':' empty'}${selected===slot?' selected':''}`;button.dataset.slot=slot;button.disabled=busy;
   button.setAttribute('aria-label',e?`Slot ${slot}: ${def.label}, ${e.count}`:`Slot ${slot} vacío`);
   const number=document.createElement('span');number.className='number';number.textContent=String(slot).padStart(2,'0');button.append(number);
-  if(e){button.draggable=!busy;button.append(itemIcon(def.icon));const label=document.createElement('span');label.className='label';label.textContent=def.label;const qty=document.createElement('span');qty.className='qty';qty.textContent=`×${e.count}`;button.append(label,qty);}
-  button.addEventListener('click',()=>{if(!e&&selectedEntry()){move(slot);return;}selected=e?slot:null;$('amount').value='1';render();});
-  button.addEventListener('dragstart',event=>{selected=slot;event.dataTransfer.setData('text/plain',String(slot));event.dataTransfer.effectAllowed='move';});
-  button.addEventListener('dragover',event=>{event.preventDefault();button.classList.add('dragover');});
-  button.addEventListener('dragleave',()=>button.classList.remove('dragover'));
-  button.addEventListener('drop',event=>{event.preventDefault();button.classList.remove('dragover');if(Number(event.dataTransfer.getData('text/plain'))===selected)move(slot);});
+  if(e){button.append(itemIcon(def.icon));const label=document.createElement('span');label.className='label';label.textContent=def.label;const qty=document.createElement('span');qty.className='qty';qty.textContent=`×${e.count}`;button.append(label,qty);}
+  button.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return;}if(!e&&selectedEntry()){moveStack(selected,slot,false);return;}selected=e?slot:null;$('amount').value='1';render();});
+  if(e)button.addEventListener('pointerdown',event=>{if(event.button===0&&!busy)drag={from:slot,x:event.clientX,y:event.clientY,active:false,ghost:null};});
   $('grid').append(button);
  }
  $('detail').hidden=!entry;$('empty-detail').hidden=!!entry;
@@ -54,7 +51,39 @@ async function action(op,args){
  finally{if(version===epoch){busy=false;render();}}
 }
 function entryAction(op,args={}){const e=selectedEntry(),count=quantity();if(!e||!count||count>e.count){status('Selecciona una cantidad válida.',true);return;}action(op,{slot:selected,expected:e.id,count,...args});}
-function move(to){if(to!==selected)entryAction('move',{to});}
+// Mover con el raton (sin el arrastre HTML5, poco fiable en la NUI de FiveM). Se mueve la pila
+// completa: a un hueco vacio, se combina con una pila igual o se intercambia con otra. Con Mayus
+// pulsado se mueve solo la cantidad indicada (dividir).
+let drag=null,suppressClick=false;
+function moveStack(from,to,partial){
+ const e=inventory?.slots[String(from)];if(!e||from===to)return;
+ const count=partial?quantity():e.count;
+ if(!count||count>e.count){status('Selecciona una cantidad válida.',true);return;}
+ selected=from;action('move',{slot:from,expected:e.id,count,to});
+}
+function slotAt(x,y){const node=document.elementFromPoint(x,y)?.closest?.('.slot');return node?Number(node.dataset.slot):null;}
+function clearDragTarget(){document.querySelectorAll('.slot.dragover').forEach(n=>n.classList.remove('dragover'));}
+window.addEventListener('pointermove',event=>{
+ if(!drag)return;
+ if(!drag.active){
+  if(Math.hypot(event.clientX-drag.x,event.clientY-drag.y)<6)return;
+  const source=document.querySelector(`.slot[data-slot="${drag.from}"]`);if(!source){drag=null;return;}
+  drag.active=true;drag.ghost=source.cloneNode(true);drag.ghost.className='slot drag-ghost';drag.ghost.style.width=`${source.offsetWidth}px`;drag.ghost.style.height=`${source.offsetHeight}px`;document.body.append(drag.ghost);
+  source.classList.add('dragging');
+ }
+ drag.ghost.style.transform=`translate(${event.clientX-drag.ghost.offsetWidth/2}px,${event.clientY-drag.ghost.offsetHeight/2}px)`;
+ clearDragTarget();const target=slotAt(event.clientX,event.clientY);
+ if(target&&target!==drag.from)document.querySelector(`.slot[data-slot="${target}"]`)?.classList.add('dragover');
+});
+window.addEventListener('pointerup',event=>{
+ if(!drag)return;
+ const current=drag;drag=null;clearDragTarget();
+ if(!current.active)return;
+ current.ghost?.remove();document.querySelector('.slot.dragging')?.classList.remove('dragging');suppressClick=true;setTimeout(()=>{suppressClick=false;},0);
+ const target=slotAt(event.clientX,event.clientY);
+ if(target&&target!==current.from)moveStack(current.from,target,event.shiftKey);
+});
+window.addEventListener('pointercancel',()=>{if(drag){drag.ghost?.remove();clearDragTarget();drag=null;}});
 $('close').addEventListener('click',close);
 $('use').addEventListener('click',()=>entryAction('use',{count:1}));
 $('split').addEventListener('click',()=>{const e=selectedEntry(),to=firstEmpty(),count=quantity();if(!e||!to||!count||count>=e.count){status('Para dividir, indica una cantidad menor que la pila.',true);return;}entryAction('move',{to});});

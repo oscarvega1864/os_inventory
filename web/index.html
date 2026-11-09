@@ -6,7 +6,7 @@
 <body><main id="inventory" hidden aria-label="Inventario personal">
  <header><div class="brand">OS<span>INVENTORY</span></div><div class="header-copy"><small>EFECTOS PERSONALES</small><h1>Tu inventario</h1></div><button id="close" class="quiet" aria-label="Cerrar inventario">ESC <span>×</span></button></header>
  <section class="content"><div class="storage"><div class="capacity"><div><span id="slots">0 / 30 slots</span><span id="weight">0 / 30 kg</span></div><progress id="weight-bar" max="30" value="0"></progress></div>
- <div id="grid" role="group" aria-label="Slots del inventario"></div><p class="hint">Selecciona un objeto · Arrastra para mover · Ajusta la cantidad para dividir</p></div>
+ <div id="grid" role="group" aria-label="Slots del inventario"></div><p class="hint">Selecciona un objeto · Arrastra para mover la pila o intercambiarla · Mayús al soltar mueve solo la cantidad indicada</p></div>
  <aside><div id="empty-detail"><svg class="hero-icon"><use href="icons.svg#box"></use></svg><h2>Todo en su lugar</h2><p>Selecciona un objeto para ver sus detalles y acciones.</p></div>
  <div id="detail" hidden><div class="detail-top"><span id="category"></span><span id="slot-number"></span></div><svg class="hero-icon"><use id="detail-icon" href="icons.svg#box"></use></svg><h2 id="item-name"></h2><p id="description"></p><dl><div><dt>Cantidad</dt><dd id="count"></dd></div><div><dt>Peso unidad</dt><dd id="unit-weight"></dd></div><div><dt>Peso total</dt><dd id="total-weight"></dd></div></dl><p id="metadata" class="metadata"></p>
  <label for="amount">Cantidad a mover o entregar</label><input id="amount" type="number" min="1" max="1000000" value="1" inputmode="numeric">
