@@ -14,7 +14,8 @@ OSItems={
  os_tracker_kit={label='Kit de localizador',weight=1.0,stack=5,usable=false,transferable=true},
  os_drill={label='Taladro',weight=2.0,stack=1,usable=false,transferable=true},
  os_screwdriver={label='Destornillador',weight=1.0,stack=1,usable=false,transferable=true},
- os_battery={label='Bateria',weight=1.0,stack=20,usable=false,transferable=true}
+ os_battery={label='Bateria',weight=1.0,stack=20,usable=false,transferable=true},
+ g6_alarm_tag={label='Chapa de alarma',weight=0.02,stack=10,usable=true,transferable=true}
 }
 local details={
  agua={'Una botella de agua para consumir.','consumible','water'},
@@ -26,12 +27,13 @@ local details={
  g6_operations_tablet={'Tablet G6 Operations. No concede empleo ni privilegios administrativos.','seguridad','tablet'},
  security_tablet={'Tablet de seguridad generica; sin aplicacion integrada.','seguridad','tablet'},
  os_cctv_kit={'Material de instalacion CCTV. La instalacion se realiza desde la tablet G6 Operations.','seguridad','box'},
- os_alarm_kit={'Material de instalacion de alarma. Sin instalacion funcional en esta version.','seguridad','box'},
+ os_alarm_kit={'Kit de central de alarma con teclado. Se instala con Usar, como el kit CCTV.','seguridad','box'},
  os_lock_kit={'Material de cerradura inteligente. Sin instalacion funcional en esta version.','seguridad','box'},
  os_tracker_kit={'Material de localizador GPS. Sin instalacion funcional en esta version.','seguridad','box'},
  os_drill={'Herramienta de instalacion de equipos de seguridad.','herramienta','tool'},
  os_screwdriver={'Herramienta de instalacion de equipos de seguridad.','herramienta','tool'},
- os_battery={'Material de alimentacion para instalaciones de seguridad.','seguridad','box'}
+ os_battery={'Material de alimentacion para instalaciones de seguridad.','seguridad','box'},
+ g6_alarm_tag={'Chapa de proximidad de alarma. En blanco se programa desde la tablet G6 Client; programada, Usar junto al teclado arma o desarma.','seguridad','card'}
 }
 for name,item in pairs(OSItems) do
  local detail=details[name]
