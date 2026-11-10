@@ -1,6 +1,10 @@
 # Changelog
 
-## Sin publicar
+## 0.1.1
+
+- Los recibos de operaciones (que evitan entregar dos veces lo mismo) caducan a los 30 días y se limpian
+  solos cuando el registro se llena, sin perder la protección de las operaciones recientes.
+- La actualización del inventario abierto se agrupa (250 ms) en vez de repetirse en cada cambio.
 
 - Sección **Objetos e inventario** para el panel y la consola de `os_admin` (opcional): dar y quitar objetos del catálogo, ver el inventario de un personaje (huecos, cantidades y peso), vaciarlo con confirmación y consultar el catálogo. Usa la misma ruta administrativa que `/giveitem`, `/removeitem`, `/inspectinventory` y `/clearinventory`.
 

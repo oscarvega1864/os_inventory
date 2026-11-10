@@ -26,7 +26,13 @@ local function actor(src)
     end
 end
 local service
-local function invalidate() TriggerClientEvent('osinventory:invalidated',-1) end
+-- Aviso de cambios agrupado: varias operaciones seguidas (p. ej. cobros de una mision) envian un solo aviso.
+local invalidatePending=false
+local function invalidate()
+    if invalidatePending then return end
+    invalidatePending=true
+    SetTimeout(250,function() invalidatePending=false;TriggerClientEvent('osinventory:invalidated',-1) end)
+end
 local function boot()
     if service then return end
     local storage,err=OSInventory.openStorage(resource,identity,os.time())

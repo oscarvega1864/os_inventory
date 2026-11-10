@@ -233,7 +233,14 @@ function OSInventory.Service.new(options)
             local receipt=state.receipts[key]
             if receipt then return receipt.signature==signature,receipt.signature==signature and 'Operacion ya confirmada.' or 'ID de operacion reutilizado.' end
             local n=0;for _ in pairs(state.receipts) do n=n+1 end
-            if n>=c.MaxReceipts then return false,'Registro de recibos lleno; requiere mantenimiento explicito.' end
+            if n>=c.MaxReceipts then
+                -- Lleno: se retiran los recibos caducados en un cambio propio y validado.
+                local removed=0
+                service.change({op='prune_receipts',actor='system'},function(nextState) removed=d.pruneReceipts(nextState,options.now());return removed>0,'Sin recibos caducados.' end)
+                n=0;for _ in pairs(state.receipts) do n=n+1 end
+                if n>=c.MaxReceipts then return false,'Registro de recibos lleno; requiere mantenimiento explicito.' end
+                options.log(('Recibos caducados retirados: %d.'):format(removed))
+            end
         end
         return service.change({op=operation,actor=caller,target=owner,item=name,qty=count},function(nextState)
             local current,reason=d.inventory(nextState,owner,true,options.now());if not current then return false,reason end

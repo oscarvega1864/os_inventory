@@ -196,8 +196,24 @@ function d.successor(old,new)
         local nextInv=new.inventories[owner]
         if not nextInv or nextInv.id~=inv.id or nextInv.revision<inv.revision then return false,'Inventario eliminado o renumerado.' end
     end
-    for key,receipt in pairs(old.receipts) do if not u.equal(new.receipts[key],receipt) then return false,'Recibo perdido o alterado.' end end
+    -- Un recibo solo puede desaparecer si ya tenia mas de ReceiptDays dias cuando se guardo este cambio.
+    local last=new.audit[#new.audit]
+    local cutoff=last and u.integer(last.at,0,9007199254740990) and last.at-c.ReceiptDays*86400 or nil
+    for key,receipt in pairs(old.receipts) do
+        local kept=new.receipts[key]
+        if kept==nil then
+            if not cutoff or receipt.at>=cutoff then return false,'Recibo perdido o alterado.' end
+        elseif not u.equal(kept,receipt) then return false,'Recibo perdido o alterado.' end
+    end
     return true
+end
+-- Retira los recibos caducados (mas de ReceiptDays dias). Devuelve cuantos quita.
+function d.pruneReceipts(state,now)
+    local cutoff,removed=now-c.ReceiptDays*86400,0
+    for key,receipt in pairs(state.receipts) do
+        if receipt.at<cutoff then state.receipts[key]=nil;removed=removed+1 end
+    end
+    return removed
 end
 function d.migrate(old,identity,now)
     if old.version==2 then local ok,err=d.snapshot(old);return ok and u.copy(old) or nil,err end

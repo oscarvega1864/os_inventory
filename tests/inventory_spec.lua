@@ -148,6 +148,20 @@ test('Durable export operation receipts survive restarts and reject changed payl
     local f=fixture();assert(f.add(1,'agua',2,nil,'add-1'));assert(f.add(1,'agua',2,nil,'add-1'));assert(f.count(1,'agua')==2)
     assert(not f.add(1,'agua',3,nil,'add-1'));local g=fixture({files=f.files});assert(g.add(1,'agua',2,nil,'add-1'));assert(g.count(1,'agua')==2)
 end)
+test('Full receipt registry retires receipts older than ReceiptDays instead of blocking item operations forever',function()
+    local f=fixture();local c=OSInventory.Config;local saved=c.MaxReceipts;c.MaxReceipts=3
+    local ok,err=pcall(function()
+        assert(f.add(1,'agua',1,nil,'r-1'));assert(f.add(1,'agua',1,nil,'r-2'));assert(f.add(1,'agua',1,nil,'r-3'))
+        assert(not f.add(1,'agua',1,nil,'r-4')) -- lleno y ninguno caducado
+        f.clock=f.clock+c.ReceiptDays*86400+1
+        assert(f.add(1,'agua',1,nil,'r-4') and f.count(1,'agua')==4) -- se retiran los caducados y sigue
+        local g=fixture({files=f.files});assert(g.count(1,'agua')==4) -- el cambio supera la validacion al reiniciar
+        local old={revision=1,provider=c.Identity.Provider,nextInventory=1,nextStack=1,nextDrop=1,inventories={},receipts={k={signature='s',at=f.clock}},audit={}}
+        local new={revision=2,provider=c.Identity.Provider,nextInventory=1,nextStack=1,nextDrop=1,inventories={},receipts={},audit={{at=f.clock+10}}}
+        assert(not OSInventory.Domain.successor(old,new)) -- un recibo reciente no puede desaparecer
+    end)
+    c.MaxReceipts=saved;assert(ok,err)
+end)
 test('Registered item use is server-only, scoped, deduplicated and removed on resource stop',function()
     local f=fixture();local calls=0;OSInventory.Config.ResourceAccess.partner={useItems={telefono=true}}
     assert(not f.service.register('attacker','telefono',function() end))

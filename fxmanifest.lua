@@ -3,7 +3,7 @@ game 'gta5'
 lua54 'yes'
 author 'OSCAR / OS Inventory'
 description 'Inventario standalone de desarrollo con NUI tecla I y persistencia'
-version '0.1.0'
+version '0.1.1'
 shared_scripts { 'shared/items.lua' }
 server_scripts {
  'config/server.lua', 'config/authorization.lua', 'server/lib/util.lua',

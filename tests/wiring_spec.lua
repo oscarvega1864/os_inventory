@@ -16,6 +16,7 @@ local function fixture()
     RegisterNetEvent=function(name,fn) f.net[name]=fn end
     AddEventHandler=function(name,fn) f.events[name]=fn end
     TriggerClientEvent=function(name,src,...) f.messages[#f.messages+1]={name=name,src=src,args={...}} end
+    SetTimeout=function(_,callback) callback() end -- avisos agrupados: inmediatos en las pruebas
     exports=setmetatable({os_devtools={GetActiveCharacter=function(_,src) local p=f.identity.active(src);return p and {characterId=p.characterId,alias=p.alias,connected=true} end,
         ResolveCharacter=function(_,query) local p=f.identity.resolve(query);return p and {characterId=p.characterId,alias=p.alias} end,
         HasOscarPermission=function(_,src,permission) return src==2 and permission=='osinventory.admin' and f.delegated==true end}},
