@@ -22,7 +22,9 @@ OSItems={
  os_drill={label='Taladro',weight=2.0,stack=1,usable=false,transferable=true},
  os_screwdriver={label='Destornillador',weight=1.0,stack=1,usable=false,transferable=true},
  os_battery={label='Bateria',weight=1.0,stack=20,usable=false,transferable=true},
- g6_alarm_tag={label='Chapa de alarma',weight=0.02,stack=10,usable=true,transferable=true}
+ g6_alarm_tag={label='Chapa de alarma',weight=0.02,stack=10,usable=true,transferable=true},
+ -- Oxide Banking (via o-link): el numero de la tarjeta lo guarda o-link; aqui solo va la referencia.
+ bank_card={label='Tarjeta bancaria',weight=0.02,stack=1,usable=false,transferable=true}
 }
 local details={
  agua={'Una botella de agua para consumir.','consumible','water'},
@@ -47,7 +49,8 @@ local details={
  os_drill={'Herramienta de instalacion de equipos de seguridad.','herramienta','tool'},
  os_screwdriver={'Herramienta de instalacion de equipos de seguridad.','herramienta','tool'},
  os_battery={'Material de alimentacion para instalaciones de seguridad.','seguridad','box'},
- g6_alarm_tag={'Chapa de proximidad de alarma. En blanco se programa desde la tablet G6 Client; programada, Usar junto al teclado arma o desarma.','seguridad','card'}
+ g6_alarm_tag={'Chapa de proximidad de alarma. En blanco se programa desde la tablet G6 Client; programada, Usar junto al teclado arma o desarma.','seguridad','card'},
+ bank_card={'Tarjeta de debito de tu banco. Usala junto a un cajero automatico.','personal','card'}
 }
 for name,item in pairs(OSItems) do
  local detail=details[name]

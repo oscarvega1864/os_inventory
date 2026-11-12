@@ -68,7 +68,9 @@ window.addEventListener('pointermove',event=>{
  if(!drag.active){
   if(Math.hypot(event.clientX-drag.x,event.clientY-drag.y)<6)return;
   const source=document.querySelector(`.slot[data-slot="${drag.from}"]`);if(!source){drag=null;return;}
-  drag.active=true;drag.ghost=source.cloneNode(true);drag.ghost.className='slot drag-ghost';drag.ghost.style.width=`${source.offsetWidth}px`;drag.ghost.style.height=`${source.offsetHeight}px`;document.body.append(drag.ghost);
+  drag.active=true;drag.ghost=source.cloneNode(true);drag.ghost.className='slot drag-ghost';drag.ghost.style.width=`${source.offsetWidth}px`;drag.ghost.style.height=`${source.offsetHeight}px`;
+  // Nace ya bajo el cursor: sin esto partia de (0,0) y se veia volar desde la esquina.
+  drag.ghost.style.transform=`translate(${event.clientX-source.offsetWidth/2}px,${event.clientY-source.offsetHeight/2}px)`;document.body.append(drag.ghost);
   source.classList.add('dragging');
  }
  drag.ghost.style.transform=`translate(${event.clientX-drag.ghost.offsetWidth/2}px,${event.clientY-drag.ghost.offsetHeight/2}px)`;
