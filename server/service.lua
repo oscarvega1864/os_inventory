@@ -215,7 +215,16 @@ function OSInventory.Service.new(options)
         local inv=state.inventories[owner] or {slotCount=c.Slots,maxWeightGrams=math.floor(c.MaxWeight*1000+0.5),slots={}}
         if operation=='GetInventory' then
             if not inv.id then return nil,'Inventario no registrado; se crea al abrir o recibir objetos.' end
-            return u.copy(inv)
+            -- Cada hueco lleva tambien el nombre visible del objeto (el de sus metadatos o el del catalogo),
+            -- para que otros recursos (p. ej. el cacheo de os_security) muestren que objeto es de verdad.
+            local copy=u.copy(inv)
+            for _,slot in pairs(copy.slots or {}) do
+                if type(slot)=='table' and type(slot.name)=='string' then
+                    local meta=type(slot.metadata)=='table' and slot.metadata or nil
+                    slot.label=(meta and type(meta.label)=='string' and meta.label~='' and meta.label) or (OSItems[slot.name] and OSItems[slot.name].label) or slot.name
+                end
+            end
+            return copy
         end
         if not OSItems[name] then return false,'Objeto inexistente.' end
         if operation=='GetItemCount' then return d.count(inv,name,meta) end

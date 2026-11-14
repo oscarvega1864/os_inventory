@@ -126,6 +126,12 @@ test('External exports default deny and explicit per-item rules preserve permiss
     assert(f.service.api('partner','AddItem','oschar_0000000001','agua',1));assert(f.service.api('partner','GetItemCount','oschar_0000000001','agua')==1)
     assert(not f.service.api('partner','AddItem','oschar_0000000001','telefono',1));assert(not f.service.api(nil,'AddItem','oschar_0000000001','agua',1))
     assert(not f.service.api('partner','AddItem','oschar_9999999999','agua',1));assert(not f.service.api('partner','AddItem','1','agua',1))
+    -- GetInventory lleva el nombre visible de cada objeto (catalogo o metadatos), sin tocar el estado guardado.
+    local inv=f.service.api('partner','GetInventory','oschar_0000000001')
+    local label;for _,slot in pairs(inv.slots) do if slot.name=='agua' then label=slot.label end end
+    assert(label==OSItems.agua.label and label~='agua')
+    local again=f.service.api('partner','GetInventory','oschar_0000000001')
+    for _,slot in pairs(again.slots) do assert(slot.label==nil or slot.label==OSItems[slot.name].label) end
 end)
 test('os_security access covers only its own items and tablet use',function()
     local f=fixture();f.service.api('os_security','GetItemCount','oschar_0000000001','agua')
