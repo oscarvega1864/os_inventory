@@ -26,7 +26,8 @@ OSItems={
  -- Oxide Banking (via o-link): el numero de la tarjeta lo guarda o-link; aqui solo va la referencia.
  bank_card={label='Tarjeta bancaria',weight=0.02,stack=1,usable=false,transferable=true},
  -- Control de acceso de os_security: arco detector de metales que coloca un empleado de servicio.
- os_metal_detector={label='Arco detector de metales',weight=8.0,stack=2,usable=false,transferable=true}
+ os_metal_detector={label='Arco detector de metales',weight=8.0,stack=2,usable=false,transferable=true},
+ os_bodycam={label='Bodycam',weight=0.2,stack=1,usable=false,transferable=true}
 }
 local details={
  agua={'Una botella de agua para consumir.','consumible','water'},
@@ -53,7 +54,8 @@ local details={
  os_battery={'Material de alimentacion para instalaciones de seguridad.','seguridad','box'},
  g6_alarm_tag={'Chapa de proximidad de alarma. En blanco se programa desde la tablet G6 Client; programada, Usar junto al teclado arma o desarma.','seguridad','card'},
  bank_card={'Tarjeta de debito de tu banco. Usala junto a un cajero automatico.','personal','card'},
- os_metal_detector={'Arco detector de metales. Usar estando de servicio en tu empresa para colocarlo; /arco recoger lo retira.','seguridad','box'}
+ os_metal_detector={'Arco detector de metales. Usar estando de servicio en tu empresa para colocarlo; /arco recoger lo retira.','seguridad','box'},
+ os_bodycam={'Camara de pecho de Gruppe Sechs. Usar (o /bodycam) estando de servicio para encenderla o apagarla; la Central la ve en directo.','seguridad','tool'}
 }
 for name,item in pairs(OSItems) do
  local detail=details[name]
