@@ -13,8 +13,11 @@ OSInventory.Config={
     ResourceAccess={
         os_security={read=true,
             writeItems={g6_client_tablet=true,g6_operations_tablet=true,os_cctv_kit=true,os_cctv_kit_mini=true,os_cctv_kit_dome=true,os_alarm_kit=true,os_alarm_kit_panel=true,os_lock_kit=true,os_lock_kit_high=true,os_car_lock_kit=true,os_car_alarm_kit=true,os_lockpick=true,
-                os_tracker_kit=true,os_drill=true,os_screwdriver=true,os_battery=true,g6_alarm_tag=true},
-            useItems={g6_client_tablet=true,g6_operations_tablet=true,os_cctv_kit=true,os_cctv_kit_mini=true,os_cctv_kit_dome=true,os_alarm_kit=true,os_alarm_kit_panel=true,os_lock_kit=true,os_lock_kit_high=true,os_car_lock_kit=true,os_car_alarm_kit=true,os_lockpick=true,g6_alarm_tag=true}},
+                os_tracker_kit=true,os_drill=true,os_screwdriver=true,os_battery=true,g6_alarm_tag=true,
+                -- Control de acceso: el arco detector (colocar/recoger) y la herramienta que se retiene en un cacheo.
+                os_metal_detector=true,herramienta=true},
+            useItems={g6_client_tablet=true,g6_operations_tablet=true,os_cctv_kit=true,os_cctv_kit_mini=true,os_cctv_kit_dome=true,os_alarm_kit=true,os_alarm_kit_panel=true,os_lock_kit=true,os_lock_kit_high=true,os_car_lock_kit=true,os_car_alarm_kit=true,os_lockpick=true,g6_alarm_tag=true,
+                os_metal_detector=true}},
         -- Oxide Banking a traves de o-link: entrega, retira y usa la tarjeta bancaria.
         ['o-link']={read=true,writeItems={bank_card=true},useItems={bank_card=true}}
     },
