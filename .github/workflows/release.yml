@@ -1,0 +1,74 @@
+# Publica una release al subir una etiqueta de version (vX.Y.Z).
+# Pasos: tests (si hay package.json), la etiqueta debe coincidir con la version de fxmanifest.lua
+# (si existe) y tener seccion "## X.Y.Z" en CHANGELOG.md; zip con git archive (respeta export-ignore)
+# y release con las notas de esa seccion. Tambien se puede lanzar a mano con una etiqueta ya subida.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Etiqueta ya subida (por ejemplo v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      NAME: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Tests
+        run: |
+          if [ ! -f package.json ]; then echo "Sin tests."; exit 0; fi
+          if [ -f package-lock.json ]; then npm ci; fi
+          npm test
+
+      - name: Comprobar version y changelog
+        run: |
+          VERSION="${TAG#v}"
+          if [ -f fxmanifest.lua ]; then
+            MANIFEST="$(sed -nE "s/^version[[:space:]]+['\"]([^'\"]+)['\"].*/\1/p" fxmanifest.lua | head -n 1)"
+            if [ "$MANIFEST" != "$VERSION" ]; then echo "::error::fxmanifest.lua dice $MANIFEST y la etiqueta $TAG"; exit 1; fi
+          fi
+          awk -v v="$VERSION" '
+            /^## / { if (found) exit; split($2, a, " "); if (a[1] == v) { found = 1; next } }
+            found { print }
+            END { if (!found) exit 1 }
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md" || { echo "::error::CHANGELOG.md no tiene seccion ## $VERSION"; exit 1; }
+          cat "$RUNNER_TEMP/notes.md"
+
+      - name: Empaquetar
+        run: |
+          mkdir -p dist
+          git archive --format=zip --prefix="$NAME/" -o "dist/$NAME-$TAG.zip" HEAD
+          cp "dist/$NAME-$TAG.zip" "dist/$NAME.zip"
+
+      - name: Publicar release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Solo la version mas alta es "Latest".
+          HIGHEST="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
+          if [ "$HIGHEST" = "$TAG" ]; then LATEST=true; else LATEST=false; fi
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --title "$NAME $TAG" --notes-file "$RUNNER_TEMP/notes.md" --latest="$LATEST"
+            gh release upload "$TAG" "dist/$NAME-$TAG.zip" "dist/$NAME.zip" --clobber
+          else
+            gh release create "$TAG" "dist/$NAME-$TAG.zip" "dist/$NAME.zip" \
+              --title "$NAME $TAG" --notes-file "$RUNNER_TEMP/notes.md" --latest="$LATEST"
+          fi
