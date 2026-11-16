@@ -2,6 +2,8 @@
 
 ## 0.2.0 — Inventario a pantalla completa, accesos rápidos y armas como objetos
 
+- **Seguimiento de objetos** con identidad propia (armas, llaves, tarjetas, herramientas): cada movimiento se envía a
+  la web del panel (vía os_admin) para buscarlos por ID o número de serie y ver dónde están y quién los movió.
 - Objetos de EMS y policía: botiquín, venda (se consume y cura) y esposas. Comer y beber avisa a os_hud
   (`os_inventory:consumed`). El cacheo de os_security puede retener armas y munición.
 - **Armas como objetos** (`shared/weapons.lua`): 55 armas (cuerpo a cuerpo, pistolas, subfusiles, escopetas, fusiles,
