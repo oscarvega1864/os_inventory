@@ -1,7 +1,7 @@
 local total,failures=0,__failures or 0
 local function test(name,fn) total=total+1;local ok,err=pcall(fn);if not ok then failures=failures+1 end;__report(name,ok,tostring(err));__failures=failures end
-local modules={'config/server.lua','shared/items.lua','server/lib/util.lua','server/storage/codec.lua','server/storage/resource_files.lua',
- 'server/storage/json.lua','server/identity.lua','server/domain.lua','server/store.lua','server/service.lua'}
+local modules={'config/server.lua','config/shops.lua','shared/items.lua','shared/weapons.lua','shared/keys.lua','shared/jobs_items.lua','server/lib/util.lua','server/storage/codec.lua','server/storage/resource_files.lua',
+ 'server/storage/json.lua','server/identity.lua','server/domain.lua','server/store.lua','server/service.lua','server/panel_track.lua'}
 local function fixture(options)
     options=options or {}
     OSInventory={};for _,file in ipairs(modules) do dofile('/repo/'..file) end
@@ -27,9 +27,12 @@ local function fixture(options)
     io.open=function() return nil,'not found',2 end
     f.storage,f.error=OSInventory.openStorage('os_inventory',f.identity,f.clock)
     if not f.storage then return f end
-    f.service=OSInventory.Service.new({resource='os_inventory',storage=f.storage,identity=f.identity,now=function() return f.clock end,
+    f.service=OSInventory.Service.new({resource='os_inventory',storage=f.storage,identity=f.identity,now=function() return f.clock end,committed=options.committed,
         position=function(src) return f.connected[src] and f.position[src] end,
-        admin=function(src) return src==0 or f.admin[src]==true end,actor=function(src) return 'account:'..src end,log=function() end})
+        admin=function(src) return src==0 or f.admin[src]==true end,actor=function(src) return 'account:'..src end,log=function() end,
+        players=function() local list={};for src in pairs(f.connected) do list[#list+1]=src end;return list end,name=function(src) return 'Nombre '..src end,equip=function(src,data) f.equipped={src=src,data=data} end,
+        charge=function(src,amount,account) if f.broke then return false,'insufficient_funds' end;f.charged=(f.charged or 0)+amount;return true end,
+        refund=function(src,amount) f.refunded=(f.refunded or 0)+amount end})
     assert(f.service.start())
     function f.owner(src) local person=f.identity.active(src);return person and person.key end
     function f.inv(src) return f.service.state().inventories[f.owner(src)] end
@@ -222,3 +225,72 @@ test('Snapshot validation rejects forged quantities, reused instance IDs and cou
     state=f.service.state();state.nextStack=1;assert(not OSInventory.Domain.snapshot(state))
 end)
 print(('Inventory domain/service/storage: %d cases'):format(total))
+
+test('Hotbar lists the first six slots and quick use follows the same rules as Use',function()
+    local f=fixture();assert(f.add(1,'agua',2));assert(f.add(1,'g6_client_tablet',1))
+    local inv=f.inv(1);local moved=f.open(1);assert(f.request(1,moved,'move',{slot=2,expected=inv.slots['2'].id,count=1,to=8}).ok)
+    local bar=f.service.hotbar(1);assert(#bar.slots==1 and bar.slots[1].slot==1 and bar.slots[1].name=='agua' and bar.slots[1].count==2 and bar.slots[1].usable==true)
+    assert(f.service.quickUse(1,1) and f.count(1,'agua')==1)
+    local ok,err=f.service.quickUse(1,3);assert(not ok and err:find('acceso rapido 3'))
+    assert(not f.service.quickUse(1,8),'slot 8 is not a quick-access slot');assert(not f.service.quickUse(1,0) and not f.service.quickUse(1,'1'))
+    assert(f.service.hotbar(9)==nil,'no character, no hotbar')
+end)
+test('Give list shows only nearby players with a character, never yourself',function()
+    local f=fixture();assert(f.add(1,'agua',1));local opened=f.open(1)
+    local players=opened.inventory.players;assert(#players==1 and players[1].id==2 and players[1].name=='Nombre 2')
+    assert(opened.inventory.hotbar==6)
+    f.characters[2]=nil;assert(#f.service.players(1)==0)
+end)
+
+test('Weapons are unique items with a server serial; Use draws them without consuming and sends the ammo of their type',function()
+    local f=fixture();assert(f.add(1,'weapon_pistol',2));assert(f.add(1,'ammo_pistol',40))
+    local a,b=f.inv(1).slots['1'],f.inv(1).slots['2']
+    assert(a.name=='weapon_pistol' and b.name=='weapon_pistol' and a.metadata.serial=='1' and b.metadata.serial=='2','weapon serials start at 1 and count up')
+    assert(f.add(1,'weapon_knife',1) and f.inv(1).slots['4'].metadata.serial=='3')
+    local o=f.open(1);assert(f.request(1,o,'use',f.args(1,1,1)).ok)
+    assert(f.count(1,'weapon_pistol')==2,'drawing a weapon does not consume it')
+    assert(f.equipped.src==1 and f.equipped.data.hash=='WEAPON_PISTOL' and f.equipped.data.ammoItem=='ammo_pistol' and f.equipped.data.ammo==40 and f.equipped.data.id==a.id)
+    local bar=f.service.hotbar(1);assert(bar.arsenal.weapons[a.id]=='weapon_pistol' and bar.arsenal.ammo.ammo_pistol==40)
+end)
+test('Fired rounds only ever reduce ammo, never below zero, and only for ammo items',function()
+    local f=fixture();assert(f.add(1,'ammo_rifle',30));assert(f.add(1,'agua',2))
+    assert(f.service.useAmmo(1,'ammo_rifle',12) and f.count(1,'ammo_rifle')==18)
+    assert(f.service.useAmmo(1,'ammo_rifle',100) and f.count(1,'ammo_rifle')==0)
+    assert(not f.service.useAmmo(1,'agua',1) and f.count(1,'agua')==2)
+    assert(not f.service.useAmmo(1,'ammo_rifle',-5) and not f.service.useAmmo(1,'ammo_rifle',0) and not f.service.useAmmo(1,'ammo_rifle',5000))
+end)
+test('Saved weapons from the old system become items with their ammo, all or nothing',function()
+    local f=fixture()
+    assert(f.service.migrateWeapons(1,{{name='WEAPON_PISTOL',ammo=36},{name='WEAPON_KNIFE',ammo=0},{name='WEAPON_GRENADE',ammo=3},{name='WEAPON_UNKNOWN',ammo=5}}))
+    assert(f.count(1,'weapon_pistol')==1 and f.count(1,'ammo_pistol')==36 and f.count(1,'weapon_knife')==1 and f.count(1,'weapon_grenade')==3)
+    local g=fixture({slots=1});assert(not g.service.migrateWeapons(1,{{name='WEAPON_PISTOL',ammo=10},{name='WEAPON_KNIFE',ammo=0}}))
+    assert(g.count(1,'weapon_pistol')==0,'nothing is added when it does not all fit')
+end)
+
+test('Ammu-Nation: only at a counter, listed items, valid amounts; charge then deliver, refund when it does not fit',function()
+    local f=fixture();local counter=OSInventory.Shops.ammunation.locations[1]
+    assert(not f.service.shopBuy(1,'ammunation','weapon_pistol',1,'cash'),'far from any counter')
+    f.position[1]={x=counter.x,y=counter.y,z=counter.z,bucket=0}
+    local ok,msg=f.service.shopBuy(1,'ammunation','weapon_pistol',1,'cash');assert(ok,msg)
+    assert(f.count(1,'weapon_pistol')==1 and f.charged==2500 and f.inv(1).slots['1'].metadata.serial)
+    assert(not f.service.shopBuy(1,'ammunation','ammo_pistol',60,'bank'),'paying by card needs the bank card')
+    assert(f.add(1,'bank_card',1))
+    assert(f.service.shopBuy(1,'ammunation','ammo_pistol',60,'bank') and f.count(1,'ammo_pistol')==60 and f.charged==2500+180)
+    assert(not f.service.shopBuy(1,'ammunation','weapon_carbinerifle',1,'cash'),'rifles are not sold')
+    assert(not f.service.shopBuy(1,'ammunation','ammo_pistol',0,'cash') and not f.service.shopBuy(1,'ammunation','ammo_pistol',300,'cash'))
+    assert(not f.service.shopBuy(1,'ammunation','ammo_pistol',5,'crypto'))
+    f.broke=true;local before=f.count(1,'ammo_pistol');assert(not f.service.shopBuy(1,'ammunation','ammo_pistol',5,'cash') and f.count(1,'ammo_pistol')==before)
+    local catalog=f.service.shopCatalog(1,'ammunation');assert(#catalog.items>10 and catalog.items[1].price>0)
+end)
+
+test('Panel tracking reports where each unique unit goes and who moved it',function()
+    local moves={}
+    local f=fixture({committed=function(before,after,event) for _,m in ipairs(OSInventory.PanelTrack.diff(before,after,event)) do moves[#moves+1]=m end end})
+    assert(f.add(1,'llave',1,{label='Llave propiedad 200',kind='prop',target='200',version='1'}))
+    assert(f.add(1,'agua',3)) -- sin identidad propia: no se sigue
+    assert(#moves==1 and moves[1].unit:match('^ounit_%d+$') and moves[1].kind=='inventory' and moves[1].label=='Llave propiedad 200' and moves[1].op=='AddItem' and moves[1].actor=='os_inventory')
+    local unit=moves[1].unit
+    assert(f.service.api('os_inventory','RemoveItem',string.format('oschar_%010d',1),'llave',1,{label='Llave propiedad 200',kind='prop',target='200',version='1'}))
+    assert(#moves==2 and moves[2].unit==unit and moves[2].kind=='gone')
+end)
+

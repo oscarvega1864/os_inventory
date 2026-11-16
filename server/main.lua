@@ -38,6 +38,22 @@ local function boot()
     local storage,err=OSInventory.openStorage(resource,identity,os.time())
     if not storage then print('[os_inventory] ERROR: '..tostring(err));return end
     service=OSInventory.Service.new({resource=resource,storage=storage,identity=identity,position=position,admin=admin,actor=actor,now=os.time,
+        players=function() local list={};for _,id in ipairs(GetPlayers and GetPlayers() or {}) do list[#list+1]=tonumber(id) end;return list end,
+        name=function(src) return (GetPlayerName(src) or ('Jugador '..src)):gsub('[%c<>]',''):sub(1,32) end,
+        equip=function(src,data) TriggerClientEvent('osinventory:equip',src,data) end,
+        consumed=function(src,name) TriggerEvent('os_inventory:consumed',src,name) end,
+        charge=function(src,amount,account,reason) local ok,res,err=pcall(function() return exports[c.Identity.Resource]:ChargeCharacter(src,amount,account,reason) end);if not ok then return false,'sin servicio de dinero' end;return res,err end,
+        refund=function(src,amount,account,reason) pcall(function() exports[c.Identity.Resource]:PayCharacter(src,amount,account,reason) end) end,
+        -- Web del panel (via os_admin): donde esta cada objeto con ID propio y quien lo movio.
+        committed=function(before,after,event)
+            if GetResourceState('os_admin')~='started' then return end
+            for _,move in ipairs(OSInventory.PanelTrack.diff(before,after,event)) do
+                if move.place then move.place=move.place:gsub('^devtools:','') end
+                move.actor=move.actor:gsub('^devtools:','')
+                local ok,accepted=pcall(function() return exports.os_admin:PanelTrack('item',move) end)
+                if not ok or not accepted then return end
+            end
+        end,
         log=function(message) print('[os_inventory] '..message) end})
     if service.start() then print('[os_inventory] v'..c.Version..' iniciado; proveedor '..c.Identity.Provider..'.')
     else print('[os_inventory] ERROR: almacenamiento bloqueado; no se habilitan operaciones.') end
@@ -103,10 +119,89 @@ for _,name in ipairs({'GetInventory','GetItemCount','HasItem','CanCarryItem','Ad
         return ok,result
     end)
 end
+-- Armas que lleva un jugador (objetos del inventario) con la municion de su tipo, para recursos con lectura
+-- (p. ej. el arco detector y el cacheo de os_security). Formato: { {name='weapon_pistol', ammo=36}, ... }.
+exports('GetCarriedWeapons',function(src)
+    local caller=GetInvokingResource();local access=caller and c.ResourceAccess[caller]
+    if not service or not (access and access.read) then return nil end
+    local data=service.hotbar(src);if not data or not data.arsenal then return nil end
+    local list={}
+    for _,name in pairs(data.arsenal.weapons) do
+        local weapon=OSWeapons.Weapons[name]
+        list[#list+1]={name=name,ammo=weapon and weapon.ammo and (data.arsenal.ammo[weapon.ammo] or 0) or 0}
+    end
+    return list
+end)
+-- Llaves (para recursos con lectura: os_devtools, os_security): si el jugador lleva la llave valida de un bien.
+local function reads() local caller=GetInvokingResource();local access=caller and c.ResourceAccess[caller];return access and access.read end
+exports('HasKey',function(src,kind,target,version) if not service or not reads() then return false end;return service.hasKey(src,kind,target,version) end)
+exports('ListKeys',function(src) if not service or not reads() then return {} end;return service.keys(src) end)
+-- Si el jugador (personaje activo) lleva al menos uno de ese objeto, p. ej. la tarjeta bancaria para pagar con tarjeta.
+exports('PlayerHasItem',function(src,name) if not service or not reads() or not OSItems[name] then return false end;return service.countOf(src,name)>0 end)
 -- Panel y consola de os_admin (opcional).
 local adminSection={service=function() return service end,invalidate=invalidate}
 OSInventory.AdminRuntime=adminSection
 AddEventHandler('os_admin:ready',function() OSInventory.AdminSection.publish(adminSection) end)
 exports('RegisterUsableItem',function(name,callback)
     return service and service.register(GetInvokingResource(),name,callback) or false
+end)
+
+-- Accesos rapidos (teclas 1-6): contenido para el HUD y uso directo, validado igual que "Usar".
+local lastHotbar={}
+RegisterNetEvent('osinventory:hotbar',function()
+    local src=source
+    local now=GetGameTimer()
+    if lastHotbar[src] and now-lastHotbar[src]<400 then return end
+    lastHotbar[src]=now
+    if not service then return end
+    local data=service.hotbar(src)
+    if data then TriggerClientEvent('osinventory:hotbar',src,data) end
+end)
+RegisterNetEvent('osinventory:quickUse',function(slot)
+    local src=source
+    if not service then return end
+    local ok,err=service.quickUse(src,slot)
+    if not ok then notify(src,err or 'No se pudo usar.') end
+    TriggerClientEvent('osinventory:quickUsed',src,slot,ok==true)
+end)
+AddEventHandler('playerDropped',function() lastHotbar[source]=nil end)
+
+-- Balas disparadas (el cliente solo informa de gasto) y paso de las armas guardadas del sistema anterior.
+local lastAmmo={}
+RegisterNetEvent('osinventory:ammo',function(name,rounds)
+    local src=source
+    local now=GetGameTimer()
+    if lastAmmo[src] and now-lastAmmo[src]<500 then return end
+    lastAmmo[src]=now
+    if service then service.useAmmo(src,name,tonumber(rounds)) end
+end)
+local migrated={}
+local function migrate(src)
+    if not service or GetResourceState(c.Identity.Resource)~='started' then return end
+    local person=identity.active(src);if not person or migrated[src]==person.key then return end
+    migrated[src]=person.key
+    local ok,list=pcall(function() return exports[c.Identity.Resource]:GetCharacterWeapons(src) end)
+    if not ok or type(list)~='table' or #list==0 then return end
+    local done,err=service.migrateWeapons(src,list)
+    if done then
+        pcall(function() exports[c.Identity.Resource]:ClearCharacterWeapons(src) end)
+        notify(src,'Tus armas guardadas ahora estan en el inventario como objetos.')
+    else migrated[src]=nil;notify(src,'No se pudieron pasar tus armas al inventario: '..tostring(err)..'. Libera espacio y reconecta.') end
+end
+RegisterNetEvent('osinventory:weaponsReady',function() migrate(source) end)
+AddEventHandler('playerDropped',function() lastAmmo[source]=nil;migrated[source]=nil end)
+
+-- Tiendas (Ammu-Nation)
+RegisterNetEvent('osinventory:shop:open',function(shopId)
+    local src=source
+    if not service or type(shopId)~='string' then return end
+    local catalog,err=service.shopCatalog(src,shopId)
+    if not catalog then return notify(src,err) end
+    TriggerClientEvent('osinventory:shop',src,catalog)
+end)
+RegisterNetEvent('osinventory:shop:buy',function(shopId,name,qty,account)
+    local src=source
+    if not service or type(shopId)~='string' or type(name)~='string' then return end
+    local ok,message=service.shopBuy(src,shopId,name,tonumber(qty),account)
+    TriggerClientEvent('osinventory:shopResult',src,ok==true,message)
 end)

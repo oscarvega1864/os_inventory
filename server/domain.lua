@@ -61,6 +61,12 @@ end
 local function newEntry(state,name,count,meta)
     local entry={id=id('ostack_',state.nextStack),name=name,count=count,metadata=u.copy(meta)}
     if d.limit(name,meta)==1 then entry.instanceId=id('ounit_',state.nextStack) end
+    -- Armas: numero de serie unico al crearlas (el que ya traigan se conserva).
+    -- Armas: numero de serie propio y correlativo (1, 2, 3...) al crearlas; el que ya traigan se conserva.
+    if OSItems[name].weapon and OSItems[name].unique and entry.metadata.serial==nil then
+        state.nextSerial=state.nextSerial or 1
+        entry.metadata.serial=tostring(state.nextSerial);state.nextSerial=state.nextSerial+1
+    end
     state.nextStack=state.nextStack+1;return entry
 end
 function d.add(state,inv,name,count,meta,existing)
@@ -153,11 +159,12 @@ function d.audit(state,event)
     while #state.audit>c.MaxAudit do table.remove(state.audit,1) end
 end
 function d.snapshot(state)
-    if not u.object(state,{version=true,provider=true,revision=true,nextInventory=true,nextStack=true,nextDrop=true,inventories=true,drops=true,receipts=true,audit=true,legacyAudit=true})
+    if not u.object(state,{version=true,provider=true,revision=true,nextInventory=true,nextStack=true,nextDrop=true,nextSerial=true,inventories=true,drops=true,receipts=true,audit=true,legacyAudit=true})
         or state.version~=2 or state.provider~=c.Identity.Provider or not u.integer(state.revision,0,9007199254740990)
         or not u.object(state.inventories) or size(state.inventories)>c.MaxInventories or not u.object(state.drops) or size(state.drops)>c.MaxDrops
         or not u.object(state.receipts) or size(state.receipts)>c.MaxReceipts or not u.array(state.audit,c.MaxAudit) or not u.array(state.legacyAudit,100000) then return false,'Cabecera de inventario invalida.' end
     for _,field in ipairs({'nextInventory','nextStack','nextDrop'}) do if not u.integer(state[field],1,9999999999) then return false,'Contador invalido.' end end
+    if state.nextSerial~=nil and not u.integer(state.nextSerial,1,9999999999) then return false,'Contador de numeros de serie invalido.' end
     local ids,units={},{}
     local function entry(e)
         if not u.object(e,{id=true,name=true,count=true,metadata=true,instanceId=true}) or not validId(e.id,'ostack_') or ids[e.id] or tonumber(e.id:sub(8))>=state.nextStack
@@ -192,6 +199,7 @@ end
 function d.successor(old,new)
     if new.revision~=old.revision+1 or new.provider~=old.provider then return false,'Revision no consecutiva.' end
     for _,field in ipairs({'nextInventory','nextStack','nextDrop'}) do if new[field]<old[field] then return false,'Contador reutilizado.' end end
+    if (new.nextSerial or 1)<(old.nextSerial or 1) then return false,'Contador de numeros de serie reutilizado.' end
     for owner,inv in pairs(old.inventories) do
         local nextInv=new.inventories[owner]
         if not nextInv or nextInv.id~=inv.id or nextInv.revision<inv.revision then return false,'Inventario eliminado o renumerado.' end

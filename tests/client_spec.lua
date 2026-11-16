@@ -43,17 +43,25 @@ test('Actual client wiring owns focus only after server authorization and releas
     TriggerServerEvent=function(name,...) f.sent[#f.sent+1]={name=name,args={...}} end
     TriggerEvent=function() end
     RegisterCommand=function(name,fn) f.commands[name]=fn end
-    RegisterKeyMapping=function(name,_,kind,key) assert(name=='inventario' and kind=='keyboard' and key=='I') end
+    RegisterKeyMapping=function(name,_,kind,key) f.keys=f.keys or {};f.keys[name]=key;assert(kind=='keyboard' and ((name=='inventario' and key=='I') or name=='accesorapido'..key)) end
+    IsPedInAnyVehicle=function() return false end;GetEntityModel=function() return 7 end
+    GetPedDrawableVariation=function() return 0 end;GetPedPropIndex=function() return -1 end
+    GetOffsetFromEntityInWorldCoords=function() return {x=0,y=0,z=0} end
+    CreateCamWithParams=function() f.camera=true;return 5 end;PointCamAtCoord=function() end;SetCamActive=function() end
+    RenderScriptCams=function(on) f.rendering=on end;DestroyCam=function() f.camera=false end
     RegisterNetEvent=function(name,fn) f.net[name]=fn end
     RegisterNUICallback=function(name,fn) f.nui[name]=fn end
     AddEventHandler=function(name,fn) f.events[name]=fn end
     CreateThread=function(fn) f.threads[#f.threads+1]=fn end
-    dofile('/repo/client/main.lua')
+    dofile('/repo/client/look.lua');dofile('/repo/client/hotbar.lua');dofile('/repo/client/main.lua')
+    for slot=1,6 do assert(f.keys['accesorapido'..slot]==tostring(slot) and f.commands['accesorapido'..slot]) end
     f.focus=true;f.commands.inventario();assert(#f.sent==0)
     f.focus=false;f.commands.inventario();local request=f.sent[#f.sent];assert(request.name=='osinventory:open' and not f.focus)
     source=2;f.net['osinventory:response'](request.args[1],{ok=true,token='bad',sequence=0,inventory={}});assert(not f.focus)
     source=65535;f.net['osinventory:response'](request.args[1],{ok=true,token='server',sequence=0,inventory={}});assert(f.focus)
+    assert(f.camera and f.rendering and f.messages[#f.messages].type=='open' and #f.messages[#f.messages].accessories==6)
     f.nui.close({},function(r) assert(r.ok) end);assert(not f.focus and f.sent[#f.sent].name=='osinventory:close')
+    assert(not f.camera and not f.rendering)
     f.commands.inventario();request=f.sent[#f.sent];source=65535;f.net['osinventory:response'](request.args[1],{ok=true,token='next',sequence=0,inventory={}})
     f.events.onClientResourceStop('os_inventory');assert(not f.focus)
 end)

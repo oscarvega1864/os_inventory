@@ -17,7 +17,10 @@ function OSInventory.Service.new(options)
         if ran and ok then
             event.at=options.now();d.audit(candidate,event)
             local saved,err=storage.save(candidate)
-            if saved then state=storage.data else ok=false;result=err end
+            if saved then
+                local before=state;state=storage.data
+                if options.committed then pcall(options.committed,before,state,event) end
+            else ok=false;result=err end
         end
         busy=false
         if not ran then options.log('Operacion rechazada por error interno; no se publica el cambio.');return false,'Operacion no completada.' end
@@ -61,10 +64,150 @@ function OSInventory.Service.new(options)
         while #result>c.MaxViewedDrops do table.remove(result) end
         return result
     end
+    local perform,arsenal -- se definen mas abajo (las usan tambien el uso rapido y la barra)
+    -- Jugadores con personaje a distancia de entrega (TransferDistance), para la lista "Ceder".
+    function service.players(src)
+        local position=options.position(src);local result={}
+        if not position or not options.players then return result end
+        for _,other in ipairs(options.players()) do
+            if other~=src and d.near(position,options.position(other),c.TransferDistance) and options.identity.active(other) then
+                result[#result+1]={id=other,name=options.name and options.name(other) or ('Jugador '..other)}
+            end
+        end
+        table.sort(result,function(a,b) return a.id<b.id end)
+        while #result>12 do table.remove(result) end
+        return result
+    end
     local function snapshot(src,owner)
         local inv=state.inventories[owner]
         return {id=inv.id,revision=inv.revision,slots=u.copy(inv.slots),capacity=inv.slotCount,weight=d.weight(inv)/1000,
-            maxWeight=inv.maxWeightGrams/1000,items=catalog(),nearby=service.nearby(src)}
+            maxWeight=inv.maxWeightGrams/1000,items=catalog(),nearby=service.nearby(src),players=service.players(src),hotbar=c.HotbarSlots}
+    end
+    -- Barra de accesos rapidos: las primeras HotbarSlots casillas, para el HUD (sin abrir el inventario).
+    function service.hotbar(src)
+        if not service.available() then return nil end
+        local person=options.identity.active(src);if not person then return nil end
+        local inv=state.inventories[person.key];if not inv then return {slots={},arsenal={weapons={},ammo={}}} end
+        local items=catalog();local slots={}
+        for slot=1,c.HotbarSlots do
+            local e=inv.slots[tostring(slot)]
+            if e then local def=items[e.name];slots[#slots+1]={slot=slot,name=e.name,label=e.metadata.label or def.label,icon=def.icon,count=e.count,usable=def.usable} end
+        end
+        return {slots=slots,arsenal=arsenal(inv)}
+    end
+    -- Armas que lleva el personaje y municion por tipo: el cliente quita el arma sacada si ya no la tiene
+    -- (la ha dado o tirado), ajusta la municion y retira armas del juego que no vengan del inventario.
+    function arsenal(inv)
+        local weapons,ammo={},{}
+        for _,e in pairs(inv.slots) do
+            if OSItems[e.name] and OSItems[e.name].weapon then weapons[e.id]=e.name end
+            if OSWeapons.Ammo[e.name] or (OSWeapons.Weapons[e.name] and OSWeapons.Weapons[e.name].throwable) then ammo[e.name]=(ammo[e.name] or 0)+e.count end
+        end
+        return {weapons=weapons,ammo=ammo}
+    end
+    -- Balas disparadas: el cliente solo puede gastar (nunca sumar). Se descuenta lo que haya, como mucho.
+    function service.useAmmo(src,name,rounds)
+        if not service.available() or type(name)~='string' or not u.integer(rounds,1,1000) then return false end
+        if not (OSWeapons.Ammo[name] or (OSWeapons.Weapons[name] and OSWeapons.Weapons[name].throwable)) then return false end
+        local person=options.identity.active(src);if not person then return false end
+        local inv=state.inventories[person.key];if not inv then return false end
+        local have=d.count(inv,name);local take=math.min(have,rounds)
+        if take<=0 then return true end
+        return service.change({op='ammo',actor=person.key,item=name,qty=take},function(nextState)
+            return d.remove(nextState.inventories[person.key],name,take)
+        end)
+    end
+    -- Armas guardadas por os_devtools (sistema anterior) pasadas a objetos: todo o nada.
+    function service.migrateWeapons(src,list)
+        if not service.available() or type(list)~='table' or #list==0 then return false,'Nada que pasar.' end
+        local person=options.identity.active(src);if not person then return false,'Personaje no disponible.' end
+        local items={}
+        for _,w in ipairs(list) do
+            local weapon=type(w)=='table' and type(w.name)=='string' and OSWeapons.Weapons[w.name:lower()]
+            if weapon then
+                if weapon.throwable then items[weapon.name]=(items[weapon.name] or 0)+math.max(1,math.min(10,math.floor(tonumber(w.ammo) or 1)))
+                else
+                    items[#items+1]=weapon.name
+                    local rounds=math.floor(tonumber(w.ammo) or 0)
+                    if weapon.ammo and rounds>0 then items[weapon.ammo]=(items[weapon.ammo] or 0)+math.min(rounds,500) end
+                end
+            end
+        end
+        return service.change({op='migrate_weapons',actor=person.key},function(nextState)
+            local inv,err=d.inventory(nextState,person.key,true,options.now());if not inv then return false,err end
+            for key,value in pairs(items) do
+                local name,count=type(key)=='number' and value or key,type(key)=='number' and 1 or value
+                local ok,reason=d.add(nextState,inv,name,count,{});if not ok then return false,reason end
+            end
+            return true
+        end)
+    end
+    -- Tiendas (config/shops.lua): comprar junto a un mostrador. Primero se comprueba que cabe, luego se cobra y se
+    -- entrega; si la entrega fallase, se devuelve el dinero.
+    function service.shopCatalog(src,shopId)
+        local shop=OSInventory.Shops and OSInventory.Shops[shopId];if not shop then return nil,'Tienda desconocida.' end
+        local point=options.position(src);if not point then return nil,'Jugador no disponible.' end
+        local near=false
+        for _,l in ipairs(shop.locations) do if (point.x-l.x)^2+(point.y-l.y)^2+(point.z-l.z)^2<=(shop.distance+1)^2 then near=true end end
+        if not near then return nil,'Acercate al mostrador.' end
+        local list={}
+        for _,entry in ipairs(shop.items) do
+            local def=OSItems[entry.name]
+            if def then list[#list+1]={name=entry.name,label=def.label,price=entry.price,icon=def.icon,description=def.description,
+                max=def.unique and 5 or (OSWeapons.Ammo[entry.name] and 250 or 10)} end
+        end
+        return {id=shopId,label=shop.label,items=list}
+    end
+    function service.shopBuy(src,shopId,name,qty,account)
+        if not rate(src) then return false,'Demasiadas solicitudes.' end
+        if not service.available() then return false,'Inventario no disponible.' end
+        local catalog,err=service.shopCatalog(src,shopId);if not catalog then return false,err end
+        local entry;for _,item in ipairs(catalog.items) do if item.name==name then entry=item end end
+        if not entry then return false,'Ese objeto no se vende aqui.' end
+        if not u.integer(qty,1,entry.max) then return false,'Cantidad no valida.' end
+        if account~='cash' and account~='bank' then return false,'Elige efectivo o banco.' end
+        local person,why=options.identity.active(src);if not person then return false,why end
+        local inv=state.inventories[person.key]
+        if inv then local can,reason=d.canCarry(inv,name,qty,{});if not can then return false,reason end end
+        if account=='bank' and not (inv and d.count(inv,'bank_card')>0) then return false,'Para pagar con tarjeta necesitas tu tarjeta bancaria.' end
+        local total=entry.price*qty
+        local paid,payError=options.charge(src,total,account,shopId..'_'..name)
+        if not paid then return false,payError=='insufficient_funds' and 'No tienes saldo suficiente.' or ('No se pudo cobrar: '..tostring(payError)) end
+        local ok,reason=service.change({op='shop',actor=person.key,item=name,qty=qty},function(nextState)
+            local target,e=d.inventory(nextState,person.key,true,options.now());if not target then return false,e end
+            return d.add(nextState,target,name,qty,{})
+        end)
+        if not ok then options.refund(src,total,account,shopId..'_refund');return false,'No cabe en tu inventario; dinero devuelto.' end
+        return true,('Comprado: %d x %s por $%d.'):format(qty,entry.label,total)
+    end
+    -- Llaves que lleva el personaje activo: { {kind,target,version,label,plate}, ... }.
+    function service.keys(src)
+        if not service.available() then return {} end
+        local person=options.identity.active(src);if not person then return {} end
+        local inv=state.inventories[person.key];local list={}
+        for _,e in pairs(inv and inv.slots or {}) do
+            if OSKeys.Items[e.name] then local m=e.metadata;list[#list+1]={item=e.name,kind=m.kind,target=m.target,version=m.version,label=m.label,plate=m.plate} end
+        end
+        return list
+    end
+    function service.countOf(src,name)
+        local person=options.identity.active(src);local inv=person and state.inventories[person.key]
+        return inv and d.count(inv,name) or 0
+    end
+    function service.hasKey(src,kind,target,version)
+        for _,k in ipairs(service.keys(src)) do
+            if k.kind==tostring(kind) and k.target==tostring(target) and k.version==tostring(version or 1) then return true end
+        end
+        return false
+    end
+    -- Tecla 1..HotbarSlots: usa un objeto de esa casilla con las mismas reglas que "Usar" en el inventario.
+    function service.quickUse(src,slot)
+        if not rate(src) then return false,'Demasiadas solicitudes.' end
+        if not service.available() or not u.integer(slot,1,c.HotbarSlots) then return false,'Acceso rapido no valido.' end
+        local person,err=options.identity.active(src);if not person then return false,err end
+        local inv=state.inventories[person.key];local e=inv and inv.slots[tostring(slot)]
+        if not e then return false,'No tienes nada en el acceso rapido '..slot..'.' end
+        return perform(src,person,'use',{slot=slot,expected=e.id,count=1,revision=inv.revision})
     end
     function service.open(src)
         if not rate(src) then return {ok=false,error='Demasiadas solicitudes.'} end
@@ -76,7 +219,7 @@ function OSInventory.Service.new(options)
         sessions[src]={token=token,owner=person.key,expires=options.now()+c.SessionSeconds,sequence=0,responses={}}
         return {ok=true,token=token,sequence=0,inventory=snapshot(src,person.key)}
     end
-    local function perform(src,person,op,args)
+    function perform(src,person,op,args)
         local allowed={slot=true,expected=true,count=true,target=true,to=true,drop=true,revision=true}
         if not u.object(args,allowed) then return false,'Argumentos invalidos.' end
         if op=='refresh' then return true end
@@ -115,10 +258,17 @@ function OSInventory.Service.new(options)
                 local taken=d.take(nextState,current,args.slot,args.expected,args.count)
                 return d.add(nextState,target,taken.name,taken.count,taken.metadata,taken)
             end
-            if OSItems[entry.name].builtinUse then return d.take(nextState,current,args.slot,args.expected,1)~=nil end
+            if OSItems[entry.name].builtinUse=='consume' then return d.take(nextState,current,args.slot,args.expected,1)~=nil end
+            if OSItems[entry.name].builtinUse=='weapon' then return true end -- sacar o guardar: no cambia el inventario
             -- Los adaptadores de uso no consumen objetos. Su efecto pertenece al recurso registrado.
             return true
         end)
+        -- Comida y bebida: se avisa a otros recursos del servidor (os_hud sube el hambre o la sed).
+        if ok and op=='use' and OSItems[entry.name].builtinUse=='consume' and options.consumed then options.consumed(src,entry.name) end
+        if ok and op=='use' and OSItems[entry.name].builtinUse=='weapon' and options.equip then
+            local weapon=OSWeapons.Weapons[entry.name]
+            options.equip(src,{id=entry.id,name=entry.name,hash=weapon.hash,ammoItem=weapon.ammo,ammo=weapon.ammo and d.count(state.inventories[person.key],weapon.ammo) or 0})
+        end
         if ok and callback and not OSItems[entry.name].builtinUse then
             local called=pcall(callback.fn,src,{characterId=person.characterId,inventoryId=inv.id,item=u.copy(entry)})
             if not called then options.log('Adaptador de uso fallo; revisar recurso registrado.');result='El adaptador no completo el uso.' end

@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.2.0 — Inventario a pantalla completa, accesos rápidos y armas como objetos
+
+- Objetos de EMS y policía: botiquín, venda (se consume y cura) y esposas. Comer y beber avisa a os_hud
+  (`os_inventory:consumed`). El cacheo de os_security puede retener armas y munición.
+- **Armas como objetos** (`shared/weapons.lua`): 55 armas (cuerpo a cuerpo, pistolas, subfusiles, escopetas, fusiles,
+  ametralladoras, francotirador, arrojadizas y otras). Cada arma de fuego es un objeto único con **número de serie**
+  correlativo (1, 2, 3...) que pone el servidor. La ficha del objeto muestra "Nº de serie" y ya no el identificador interno. "Usar" (o su acceso rápido) la saca o la guarda.
+- **Munición en cajas por tipo** (pistola, subfusil, escopeta, fusil, ametralladora, francotirador, bengalas): cada
+  unidad es una bala. Al sacar el arma lleva toda la munición de su tipo; lo disparado se descuenta en el servidor (el
+  cliente solo puede gastar, nunca sumar). Las arrojadizas son su propia munición.
+- Si el arma deja de estar en el inventario (dada, tirada) se quita del personaje. Con `StrictWeapons` (activo) se retira
+  cualquier arma que no venga del inventario (vMenu, recogidas del suelo...).
+- Las armas guardadas por os_devtools (sistema anterior) se pasan solas al inventario la primera vez que entra cada
+  personaje, con su munición; si no caben, no se pasa nada y se avisa.
+- **Ammu-Nation** (`config/shops.lua`): 9 tiendas con blip; junto al mostrador, E abre el catálogo (pistolas, escopeta
+  de corredera, taser, cuerpo a cuerpo y munición). Se paga en efectivo o banco (os_devtools `ChargeCharacter`); si no
+  cabe en el inventario, se devuelve el dinero. Las armas pesadas solo por F10.
+- **Llaves como objetos** (`shared/keys.lua`): `llave` (propiedades y negocios) y `llave_vehiculo` (llave-tarjeta), con el
+  bien que abren y la versión de su cerradura. Exports `HasKey`, `ListKeys` y `PlayerHasItem` para recursos con lectura.
+- **Lector de tarjetas** (`exports.os_inventory:CardSwipe({card, title, detail})`): pantalla en la que hay que arrastrar la
+  tarjeta (bancaria, chapa de alarma o llave-tarjeta) hasta el lector. La usan Ammu-Nation, la tienda G6, el surtidor,
+  el cajero (o-link), la chapa de alarma y los vehículos. Pagar con banco en Ammu-Nation exige la tarjeta bancaria.
+- Export `GetCarriedWeapons(src)` para recursos con lectura (arco detector y cacheo de os_security).
+- Nuevo diseño a pantalla completa: al abrir, la cámara deja al personaje a la izquierda con sus **accesorios**
+  (máscara, sombrero, gafas, pendientes, reloj y pulsera), que se quitan o se vuelven a poner con un clic.
+- A la derecha: zona **"Tirar al suelo"** (arrastra un objeto encima), rejilla de 6 columnas con una fila de casillas
+  bloqueadas, **menú de clic derecho** (usar, dividir, tirar) y **"Ceder"** con los jugadores cercanos por nombre e ID:
+  clic en el nombre o arrastra el objeto encima. Ya no hace falta escribir el ID.
+- **Accesos rápidos**: las 6 primeras casillas se usan con las teclas **1-6** sin abrir el inventario, con las mismas
+  reglas que "Usar" (lo valida el servidor). Las teclas 1-6 del juego para elegir arma quedan bloqueadas
+  (`BlockWeaponKeys`); la rueda de armas sigue igual. El contenido se avisa a otros recursos (`os_inventory:hotbar`)
+  y os_hud lo muestra abajo en el centro.
+
 ## 0.1.1
 
 - Los recibos de operaciones (que evitan entregar dos veces lo mismo) caducan a los 30 días y se limpian

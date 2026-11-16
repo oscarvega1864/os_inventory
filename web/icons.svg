@@ -6,4 +6,8 @@
 <symbol id="card" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="40" height="27" rx="3"/><path d="M4 19h40M9 29h12M9 33h8M30 29h8"/></g></symbol>
 <symbol id="tablet" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="9" width="40" height="30" rx="3"/><path d="M9 14h29v20H9M41 21v6M15 24l5 5 12-12"/></g></symbol>
 <symbol id="box" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m24 4 19 10v22L24 46 5 36V14zM5 14l19 11 19-11M24 25v21M15 9l19 11v8"/></g></symbol>
+<symbol id="gun" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 14h36l2 4h2v4H30l-2 3h-6l-3 13h-8l3-14H8l-4-4zM22 25l-1 4"/><path d="M32 14v-3h4v3"/></g></symbol>
+<symbol id="ammo" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M10 40V18c0-5 3-10 4-12 1 2 4 7 4 12v22zM22 40V18c0-5 3-10 4-12 1 2 4 7 4 12v22zM34 40V18c0-5 3-10 4-12 1 2 4 7 4 12v22zM8 40h36"/></g></symbol>
+<symbol id="key" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="15" cy="24" r="8"/><circle cx="15" cy="24" r="3"/><path d="M23 24h21M36 24v6M41 24v5"/></g></symbol>
+<symbol id="keycard" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="6" y="10" width="36" height="28" rx="4"/><path d="M12 30l4-8h10l4 8zM12 30h18M14 33v2M28 33v2M34 17h4"/></g></symbol>
 </defs></svg>

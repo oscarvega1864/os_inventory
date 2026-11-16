@@ -21,23 +21,28 @@ async function main(){
   const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++counter,timer=setTimeout(()=>reject(Error(`CDP timeout ${method}`)),10000);pending.set(id,{resolve:r=>{clearTimeout(timer);resolve(r);},reject:e=>{clearTimeout(timer);reject(e);}});socket.send(JSON.stringify({id,method,params}));});
   const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});assert(!r.exceptionDetails,JSON.stringify(r.exceptionDetails));return r.result.value;};
   const until=async expression=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await pause(40);}throw Error(`UI condition not met: ${expression}`);};
-  await send('Page.enable');await send('Runtime.enable');await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+  await send('Page.enable');await send('Runtime.enable');await send('Emulation.setDeviceMetricsOverride',{width:1920,height:1080,deviceScaleFactor:1,mobile:false});
   await send('Emulation.setDefaultBackgroundColorOverride',{color:{r:38,g:46,b:41,a:1}});
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`
     window.GetParentResourceName=()=> 'os_inventory';window.__calls=[];window.__fail=false;
-    window.__inv={id:'oinv_0000000001',revision:1,capacity:30,maxWeight:30,weight:3.8,nearby:[],slots:{'1':{id:'ostack_0000000001',name:'agua',count:6,metadata:{}},'2':{id:'ostack_0000000002',name:'g6_client_tablet',count:1,metadata:{serial:'G6-TEST'},instanceId:'ounit_0000000002'}},items:{
+    window.__inv={id:'oinv_0000000001',revision:1,capacity:30,maxWeight:30,weight:3.8,nearby:[],hotbar:6,players:[{id:20,name:'Tyron Portillo'}],slots:{'1':{id:'ostack_0000000001',name:'agua',count:6,metadata:{}},'2':{id:'ostack_0000000002',name:'g6_client_tablet',count:1,metadata:{serial:'G6-TEST'},instanceId:'ounit_0000000002'}},items:{
     agua:{label:'Agua',weight:.5,stack:20,usable:true,transferable:true,description:'Una botella de agua para consumir.',category:'consumible',icon:'water'},
     g6_client_tablet:{label:'G6 Client Tablet',weight:.8,stack:1,usable:false,transferable:true,description:'Tablet sin aplicacion integrada.',category:'seguridad',icon:'tablet'}}};
     window.fetch=async(url,options)=>{const endpoint=String(url).split('/').pop(),body=JSON.parse(options.body);window.__calls.push({endpoint,body});if(window.__fail&&endpoint==='action')throw Error('Injected transport failure');return new Response(JSON.stringify({ok:true,inventory:window.__inv}),{status:200});};
-    window.__open=()=>window.postMessage({type:'open',inventory:window.__inv},'*');
+    window.__open=()=>window.postMessage({type:'open',inventory:window.__inv,accessories:[{id:'hat',label:'Sombrero',worn:true,available:true},{id:'glasses',label:'Gafas',worn:false,available:false}]},'*');
   `});
   await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/index.html`});
   await until(`document.getElementById('inventory')?.hidden===true`);console.log('PASS UI hidden before server-authorized message');
-  await evaluate(`window.__open()`);await until(`document.querySelectorAll('.slot').length===30`);
-  assert(await evaluate(`document.querySelectorAll('.slot:not(.empty)').length===2 && document.getElementById('weight').textContent.includes('3,8')`));
+  await evaluate(`window.__open()`);await until(`document.querySelectorAll('.slot:not(.locked)').length===30 && document.querySelectorAll('.slot.locked').length===6 && document.querySelectorAll('.slot.quick').length===6`);
+  assert(await evaluate(`document.querySelectorAll('.acc').length===2 && document.querySelector('.acc.off').disabled && document.querySelector('.player').textContent==='Tyron Portillo (20)'`));
+  assert(await evaluate(`document.querySelectorAll('.slot:not(.empty):not(.locked)').length===2 && document.getElementById('weight').textContent.includes('3,8')`));
   await evaluate(`document.querySelector('[data-slot="1"]').click()`);assert(await evaluate(`document.getElementById('item-name').textContent==='Agua'&&!document.getElementById('use').disabled`));
   await pause(250);fs.writeFileSync(path.join(output,'desktop.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
-  console.log('PASS 30 slots, catalog icons, weights and selected-item actions');
+  console.log('PASS 30 slots (row 1 = quick access) plus a locked row, accessories, nearby players and selected-item actions');
+  await evaluate(`window.__calls.length=0;document.getElementById('amount').value='3';document.querySelector('.player').click()`);
+  await until(`window.__calls.some(c=>c.body.op==='give')`);assert(await evaluate(`(()=>{const a=window.__calls.find(c=>c.body.op==='give').body.args;return a.target===20&&a.count===3&&a.slot===1;})()`));
+  await evaluate(`document.querySelector('.acc').click()`);await until(`window.__calls.some(c=>c.endpoint==='accessory'&&c.body.id==='hat')`);
+  console.log('PASS give to a nearby player by clicking the name; accessories call the client');
   await evaluate(`document.getElementById('amount').value='2';document.getElementById('split').click()`);
   await until(`window.__calls.some(c=>c.endpoint==='action'&&c.body.op==='move')`);
   assert(await evaluate(`window.__calls.find(c=>c.body.op==='move').body.args.to===3&&window.__calls.find(c=>c.body.op==='move').body.args.count===2`));console.log('PASS split sends selected stack identity, revision, amount and empty slot');
@@ -55,6 +60,19 @@ async function main(){
   await evaluate(`window.__calls.length=0;document.querySelector('[data-slot="1"]').click();document.getElementById('amount').value='2'`);await dragTo(1,7,8);
   await until(`window.__calls.some(c=>c.body.op==='move')`);assert(await evaluate(`window.__calls.find(c=>c.body.op==='move').body.args.count===2`),'Shift while dropping moves the chosen amount');
   console.log('PASS mouse drag moves or swaps the whole stack, Shift moves the chosen amount');
+  const dragToNode=async(from,selector)=>{await until(`!document.querySelector('.slot:disabled')`);await evaluate(`document.querySelector('${selector}').scrollIntoView({block:'nearest'});document.querySelector('[data-slot="${from}"]').scrollIntoView({block:'nearest'});true`);const a=await center(from);const b=await evaluate(`(()=>{const r=document.querySelector('${selector}').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:a.x,y:a.y});await send('Input.dispatchMouseEvent',{type:'mousePressed',x:a.x,y:a.y,button:'left',clickCount:1});
+   for(let i=1;i<=5;i++)await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:a.x+(b.x-a.x)*i/5,y:a.y+(b.y-a.y)*i/5,button:'left',buttons:1});
+   await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:b.x,y:b.y,button:'left',clickCount:1});};
+  await evaluate(`window.__calls.length=0`);await dragToNode(1,'#dropzone');await until(`window.__calls.some(c=>c.body.op==='drop')`);
+  assert(await evaluate(`window.__calls.find(c=>c.body.op==='drop').body.args.count===6`));
+  await evaluate(`window.__calls.length=0`);await dragToNode(1,'.player');await until(`window.__calls.some(c=>c.body.op==='give')`);
+  assert(await evaluate(`window.__calls.find(c=>c.body.op==='give').body.args.target===20`));
+  await until(`!document.querySelector('.slot:disabled')`);const c1=await center(1);
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:c1.x,y:c1.y,button:'right',clickCount:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:c1.x,y:c1.y,button:'right',clickCount:1});
+  await until(`!document.getElementById('menu').hidden`);await evaluate(`window.__calls.length=0;document.querySelector('#menu [data-op="use"]').click()`);
+  await until(`window.__calls.some(c=>c.body.op==='use')&&document.getElementById('menu').hidden`);
+  console.log('PASS drag to "Tirar al suelo" drops, drag onto a player gives, right-click menu uses');
   await until(`!document.querySelector('.slot:disabled')`);
   await evaluate(`document.querySelector('[data-slot="2"]').click()`);assert(await evaluate(`document.getElementById('use').disabled && document.getElementById('metadata').textContent.includes('G6-TEST')`));
   await evaluate(`window.__inv.slots['2'].metadata.label='<img src=x onerror="window.__xss=true">';window.postMessage({type:'update',inventory:window.__inv},'*')`);

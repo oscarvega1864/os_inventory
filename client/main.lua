@@ -5,6 +5,7 @@ local function notify(text) TriggerEvent('chat:addMessage',{args={'OS INVENTORY'
 local function hide()
     SendNUIMessage({type='close'})
     if focused then SetNuiFocus(false,false);focused=false end
+    OSInventory.Look.stop()
 end
 local function canOpen()
     return NetworkIsSessionStarted() and not IsEntityDead(PlayerPedId()) and not IsPauseMenuActive() and not IsNuiFocused()
@@ -13,14 +14,17 @@ local controller=OSInventory.Client.new({schedule=SetTimeout,canOpen=canOpen,not
     send=function(event,id,packet) TriggerServerEvent('osinventory:'..event,id,packet) end,
     close=function() TriggerServerEvent('osinventory:close') end,hide=hide,
     show=function(inventory)
-        heartbeat=GetGameTimer();focused=true;SetNuiFocus(true,true);SendNUIMessage({type='open',inventory=inventory,toggleKey=OSInventory.ClientConfig.Key})
+        heartbeat=GetGameTimer();focused=true;SetNuiFocus(true,true);OSInventory.Look.start()
+        SendNUIMessage({type='open',inventory=inventory,toggleKey=OSInventory.ClientConfig.Key,accessories=OSInventory.Look.accessories()})
     end,
     update=function(inventory) SendNUIMessage({type='update',inventory=inventory}) end})
 RegisterCommand('inventario',function() controller.toggle() end,false)
+-- Otros paneles (lector de tarjetas) cierran el inventario si esta abierto.
+OSInventory.Close=function() if controller.isOpen() then controller.close() end end
 RegisterKeyMapping('inventario','Abrir / cerrar inventario','keyboard',OSInventory.ClientConfig.Key)
 RegisterNetEvent('osinventory:response',function(id,response) if source==65535 then controller.response(id,response) end end)
 RegisterNetEvent('osinventory:notify',function(text) if source==65535 then notify(text) end end)
-RegisterNetEvent('osinventory:invalidated',function() if source==65535 then controller.refresh() end end)
+RegisterNetEvent('osinventory:invalidated',function() if source==65535 then controller.refresh();OSInventory.Hotbar.request() end end)
 RegisterNetEvent('osinventory:forceClose',function() if source==65535 then controller.close() end end)
 RegisterNUICallback('close',function(_,callback) controller.close();callback({ok=true}) end)
 RegisterNUICallback('heartbeat',function(_,callback) heartbeat=GetGameTimer();callback({ok=true}) end)
@@ -73,4 +77,8 @@ CreateThread(function()
             if controller.isOpen() then controller.refresh() end
         else removeProps() end
     end
+end)
+RegisterNUICallback('accessory',function(data,callback)
+    if type(data)=='table' and type(data.id)=='string' then OSInventory.Look.toggle(data.id) end
+    callback({accessories=OSInventory.Look.accessories()})
 end)
