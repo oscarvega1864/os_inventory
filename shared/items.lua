@@ -1,6 +1,6 @@
+-- Comida y bebida (agua, comida, bocadillo, refresco...) en shared/food.lua; EMS y policia en shared/jobs_items.lua.
+-- Esos ficheros declaran sus objetos con OSInventoryItem (al final de este).
 OSItems={
- agua={label='Agua',weight=0.5,stack=20,usable=true,transferable=true},
- comida={label='Comida',weight=0.4,stack=20,usable=true,transferable=true},
  telefono={label='Telefono',weight=0.3,stack=1,usable=false,transferable=true},
  herramienta={label='Herramienta',weight=1.5,stack=5,usable=false,transferable=true},
  tarjeta_acceso={label='Tarjeta de acceso',weight=0.05,stack=1,usable=false,transferable=true},
@@ -30,8 +30,6 @@ OSItems={
  os_bodycam={label='Bodycam',weight=0.2,stack=1,usable=false,transferable=true}
 }
 local details={
- agua={'Una botella de agua para consumir.','consumible','water'},
- comida={'Una racion de comida para consumir.','consumible','food'},
  telefono={'Telefono personal. Sin aplicacion funcional en esta version.','personal','phone'},
  herramienta={'Herramienta de trabajo. Uso especializado mediante un adaptador autorizado.','herramienta','tool'},
  tarjeta_acceso={'Tarjeta individual. No concede permisos por si misma.','acceso','card'},
@@ -60,8 +58,15 @@ local details={
 for name,item in pairs(OSItems) do
  local detail=details[name]
  item.description,item.category,item.icon=detail[1],detail[2],detail[3]
- item.metadataAllowed=name~='agua' and name~='comida'
+ item.metadataAllowed=true
  item.unique=item.stack==1
  item.metadataSchema={label=128,reference=96,serial=64}
- item.builtinUse=(name=='agua' or name=='comida') and 'consume' or nil
+end
+-- Declara un objeto sin metadatos (no unico salvo stack 1). extra: campos adicionales (builtinUse, nutrition...).
+function OSInventoryItem(name,label,weight,stack,description,category,icon,extra)
+ local item={label=label,weight=weight,stack=stack,usable=false,transferable=true,description=description,category=category,icon=icon,
+  metadataAllowed=false,unique=stack==1,metadataSchema={label=128,reference=96,serial=64}}
+ for k,v in pairs(extra or {}) do item[k]=v end
+ if item.builtinUse then item.usable=true end
+ OSItems[name]=item
 end

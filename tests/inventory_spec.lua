@@ -1,6 +1,6 @@
 local total,failures=0,__failures or 0
 local function test(name,fn) total=total+1;local ok,err=pcall(fn);if not ok then failures=failures+1 end;__report(name,ok,tostring(err));__failures=failures end
-local modules={'config/server.lua','config/shops.lua','shared/items.lua','shared/weapons.lua','shared/keys.lua','shared/jobs_items.lua','server/lib/util.lua','server/storage/codec.lua','server/storage/resource_files.lua',
+local modules={'config/server.lua','config/shops.lua','shared/items.lua','shared/food.lua','shared/weapons.lua','shared/keys.lua','shared/jobs_items.lua','server/lib/util.lua','server/storage/codec.lua','server/storage/resource_files.lua',
  'server/storage/json.lua','server/identity.lua','server/domain.lua','server/store.lua','server/service.lua','server/panel_track.lua'}
 local function fixture(options)
     options=options or {}
@@ -294,3 +294,15 @@ test('Panel tracking reports where each unique unit goes and who moved it',funct
     assert(#moves==2 and moves[2].unit==unit and moves[2].kind=='gone')
 end)
 
+
+test('Food and drink items are consumable, carry their nutrition and are sold in the 24/7 shops',function()
+    local f=fixture()
+    for _,name in ipairs({'agua','comida','bocadillo','hamburguesa','refresco','zumo','cafe'}) do
+        local item=OSItems[name];assert(item and item.builtinUse=='consume' and item.usable and type(item.nutrition)=='table',name)
+        assert((item.nutrition.hunger or 0)+(item.nutrition.thirst or 0)>0,name)
+    end
+    assert(OSItems.agua.nutrition.thirst==40 and OSItems.comida.nutrition.hunger==35,'same values as before')
+    local shop=OSInventory.Shops.supermercado;assert(shop and #shop.locations>=10)
+    for _,entry in ipairs(shop.items) do assert(OSItems[entry.name] and OSItems[entry.name].nutrition and entry.price>0,entry.name) end
+    assert(f.add(1,'hamburguesa',2) and f.count(1,'hamburguesa')==2)
+end)

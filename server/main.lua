@@ -41,7 +41,8 @@ local function boot()
         players=function() local list={};for _,id in ipairs(GetPlayers and GetPlayers() or {}) do list[#list+1]=tonumber(id) end;return list end,
         name=function(src) return (GetPlayerName(src) or ('Jugador '..src)):gsub('[%c<>]',''):sub(1,32) end,
         equip=function(src,data) TriggerClientEvent('osinventory:equip',src,data) end,
-        consumed=function(src,name) TriggerEvent('os_inventory:consumed',src,name) end,
+        -- os_hud recibe tambien lo que alimenta el objeto (shared/food.lua) para no repetir la tabla.
+        consumed=function(src,name) TriggerEvent('os_inventory:consumed',src,name,OSItems[name] and OSItems[name].nutrition) end,
         charge=function(src,amount,account,reason) local ok,res,err=pcall(function() return exports[c.Identity.Resource]:ChargeCharacter(src,amount,account,reason) end);if not ok then return false,'sin servicio de dinero' end;return res,err end,
         refund=function(src,amount,account,reason) pcall(function() exports[c.Identity.Resource]:PayCharacter(src,amount,account,reason) end) end,
         -- Web del panel (via os_admin): donde esta cada objeto con ID propio y quien lo movio.

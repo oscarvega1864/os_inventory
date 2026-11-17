@@ -1,0 +1,26 @@
+-- Comida y bebida. Se consumen con Usar (o su acceso rapido); os_hud sube el hambre y la sed segun 'nutrition'
+-- (0-100). Se venden en las tiendas 24/7 (config/shops.lua). 'agua' y 'comida' son los objetos de siempre.
+local function item(name, label, weight, stack, hunger, thirst, description, icon)
+    OSInventoryItem(name, label, weight, stack, description, 'consumible', icon,
+        { builtinUse = 'consume', nutrition = { hunger = hunger, thirst = thirst } })
+end
+-- Comida (icono food)
+item('comida', 'Comida', 0.4, 20, 35, 0, 'Una racion de comida para consumir.', 'food')
+item('bocadillo', 'Bocadillo', 0.3, 10, 35, 0, 'Bocadillo de jamon. Quita bastante hambre.', 'food')
+item('hamburguesa', 'Hamburguesa', 0.35, 10, 45, 0, 'Hamburguesa con queso. Llena mucho.', 'food')
+item('pizza', 'Porcion de pizza', 0.25, 10, 30, 0, 'Una porcion de pizza.', 'food')
+item('perrito', 'Perrito caliente', 0.25, 10, 30, 0, 'Perrito caliente con mostaza.', 'food')
+item('tacos', 'Tacos', 0.3, 10, 35, 0, 'Dos tacos de carne.', 'food')
+item('ensalada', 'Ensalada', 0.3, 10, 20, 5, 'Ensalada fresca. Quita un poco de hambre y algo de sed.', 'food')
+item('sopa', 'Sopa', 0.4, 10, 25, 10, 'Sopa caliente.', 'food')
+item('patatas', 'Bolsa de patatas', 0.1, 20, 15, 0, 'Patatas fritas de bolsa.', 'food')
+item('donut', 'Donut', 0.1, 20, 15, 0, 'Donut glaseado.', 'food')
+item('chocolatina', 'Chocolatina', 0.05, 20, 12, 0, 'Barrita de chocolate.', 'food')
+item('manzana', 'Manzana', 0.15, 20, 10, 5, 'Una manzana.', 'food')
+-- Bebida (icono water)
+item('agua', 'Agua', 0.5, 20, 0, 40, 'Una botella de agua para consumir.', 'water')
+item('refresco', 'Refresco', 0.35, 20, 0, 30, 'Lata de refresco de cola.', 'water')
+item('zumo', 'Zumo de naranja', 0.3, 20, 5, 35, 'Brick de zumo de naranja.', 'water')
+item('cafe', 'Cafe', 0.25, 20, 0, 20, 'Cafe para llevar.', 'water')
+item('leche', 'Leche', 0.5, 20, 5, 30, 'Botella de leche.', 'water')
+item('bebida_energetica', 'Bebida energetica', 0.3, 20, 0, 25, 'Lata de bebida energetica.', 'water')
