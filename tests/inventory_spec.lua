@@ -100,6 +100,17 @@ test('Drop and pickup persist representation and permit exactly one successful c
     local p=f.open(2);assert(f.request(2,p,'pickup',{drop=key}).ok);assert(f.count(2,'agua')==2)
     assert(not f.request(1,o,'pickup',{drop=key}).ok);assert(next(f.service.state().drops)==nil)
 end)
+test('Staff clears only the ground items within the radius and in the same world',function()
+    local f=fixture();assert(f.add(1,'agua',4));local o=f.open(1)
+    assert(f.request(1,o,'drop',f.args(1,1,1)).ok)
+    f.position[1]={x=f.position[1].x+80,y=f.position[1].y,z=f.position[1].z,bucket=f.position[1].bucket}
+    o=f.open(1);assert(f.request(1,o,'drop',f.args(1,1,1)).ok)
+    local count=0;for _ in pairs(f.service.state().drops) do count=count+1 end;assert(count==2)
+    local ok,cleared,radius=f.service.clearDrops(1,500);assert(ok and cleared==1 and radius==50) -- el radio se limita a 50 m
+    count=0;for _ in pairs(f.service.state().drops) do count=count+1 end;assert(count==1)
+    ok,cleared=f.service.clearDrops(1);assert(ok and cleared==0) -- ya no queda nada cerca
+    local audit=f.service.state().audit;assert(audit[#audit-1].op=='cleardrops' or audit[#audit].op=='cleardrops')
+end)
 test('Repeated and modified sequence packets cannot duplicate effects',function()
     local f=fixture();assert(f.add(1,'agua',4));local o=f.open(1)
     local response,packet=f.request(1,o,'drop',f.args(1,1,2));assert(response.ok)

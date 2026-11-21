@@ -96,6 +96,23 @@ for _,name in ipairs({'giveitem','removeitem','clearinventory','inspectinventory
         if ok and name~='inspectinventory' then invalidate() end
     end,false)
 end
+-- /limpiarsuelo [metros]: borra los objetos tirados cerca (50 m por defecto y como maximo). Staff GO5 en adelante
+-- (ACE osinventory.cleardrops, que os_admin da al rango Game Operator 5 y heredan los superiores).
+RegisterCommand('limpiarsuelo',function(src,args)
+    if src==0 then return notify(src,'Usalo desde el juego: borra lo que hay cerca de ti.') end
+    if not IsPlayerAceAllowed(src,'osinventory.cleardrops') then return notify(src,'No tienes permiso (GO5 en adelante).') end
+    if not service then return notify(src,'Inventario no disponible.') end
+    if args[1] and not tonumber(args[1]) then return notify(src,'Uso: /limpiarsuelo [metros, hasta '..(c.ClearDropsRadius or 50)..']') end
+    local ok,count,radius=service.clearDrops(src,args[1])
+    if not ok then return notify(src,tostring(count)) end
+    notify(src,count==0 and ('No hay objetos en el suelo a %d m.'):format(radius) or ('Borrados %d objetos del suelo en %d m.'):format(count,radius))
+    if count>0 then
+        invalidate()
+        if GetResourceState('os_admin')=='started' then
+            pcall(function() exports.os_admin:PanelLog(src,'suelo.limpiado',('%d m'):format(radius),('%d objetos'):format(count)) end)
+        end
+    end
+end,false)
 RegisterCommand('daritem',function(src,args)
     if src==0 or not service then return end
     local target,name,count=tonumber(args[1]),args[2],tonumber(args[3])

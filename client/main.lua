@@ -82,3 +82,6 @@ RegisterNUICallback('accessory',function(data,callback)
     if type(data)=='table' and type(data.id)=='string' then OSInventory.Look.toggle(data.id) end
     callback({accessories=OSInventory.Look.accessories()})
 end)
+
+-- Sugerencia del chat para el staff (el servidor comprueba el permiso osinventory.cleardrops).
+TriggerEvent('chat:addSuggestion','/limpiarsuelo','[staff] Borrar los objetos del suelo cerca de ti',{{name='metros',help='Hasta 50 (por defecto 50)'}})

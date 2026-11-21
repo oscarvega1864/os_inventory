@@ -296,6 +296,24 @@ function OSInventory.Service.new(options)
         session.responses[packet.sequence-8]=nil
         return response
     end
+    -- Staff: borrar los objetos del suelo a 'radius' metros (como mucho ClearDropsRadius) en el mismo mundo que
+    -- quien lo pide. Queda en la auditoria; los objetos con ID pasan a 'ya no existe' en la web.
+    function service.clearDrops(src,radius)
+        if not service.available() then return false,'Inventario no disponible.' end
+        local point=options.position(src);if not point then return false,'Posicion no disponible.' end
+        local limit=c.ClearDropsRadius or 50
+        radius=math.max(1,math.min(limit,tonumber(radius) or limit))
+        local found={}
+        for key,drop in pairs(state.drops) do if d.near(point,drop.position,radius) then found[#found+1]=key end end
+        if #found==0 then return true,0,radius end
+        local actor=src==0 and 'console' or options.actor(src) or 'console'
+        local ok,err=service.change({op='cleardrops',actor=actor,qty=#found},function(nextState)
+            for _,key in ipairs(found) do nextState.drops[key]=nil end
+            return true
+        end)
+        if not ok then return false,err end
+        return true,#found,radius
+    end
     function service.close(src) sessions[src]=nil;confirmations[src]=nil end
     function service.dropPlayer(src) service.close(src);rates[src]=nil end
     function service.giveNamed(src,target,name,count)
