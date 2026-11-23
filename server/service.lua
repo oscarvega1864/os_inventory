@@ -117,30 +117,44 @@ function OSInventory.Service.new(options)
             return d.remove(nextState.inventories[person.key],name,take)
         end)
     end
-    -- Armas guardadas por os_devtools (sistema anterior) pasadas a objetos: todo o nada.
+    -- Armas guardadas por os_devtools (sistema anterior) pasadas a objetos: entra lo que quepa por peso (primero las
+    -- armas, despues su municion: 500 balas por arma o menos si no caben) y el resto se descarta. Devuelve
+    -- true, { added = armas que entran, skipped = armas que no cabian }.
     function service.migrateWeapons(src,list)
         if not service.available() or type(list)~='table' or #list==0 then return false,'Nada que pasar.' end
         local person=options.identity.active(src);if not person then return false,'Personaje no disponible.' end
-        local items={}
+        local weapons,ammo,throwables,seen={},{},{},{}
         for _,w in ipairs(list) do
             local weapon=type(w)=='table' and type(w.name)=='string' and OSWeapons.Weapons[w.name:lower()]
-            if weapon then
-                if weapon.throwable then items[weapon.name]=(items[weapon.name] or 0)+math.max(1,math.min(10,math.floor(tonumber(w.ammo) or 1)))
+            if weapon and not seen[weapon.name] then
+                seen[weapon.name]=true
+                if weapon.throwable then throwables[#throwables+1]={name=weapon.name,count=math.max(1,math.min(10,math.floor(tonumber(w.ammo) or 1)))}
                 else
-                    items[#items+1]=weapon.name
+                    weapons[#weapons+1]=weapon.name
                     local rounds=math.floor(tonumber(w.ammo) or 0)
-                    if weapon.ammo and rounds>0 then items[weapon.ammo]=(items[weapon.ammo] or 0)+math.min(rounds,500) end
+                    if weapon.ammo and rounds>0 then ammo[weapon.name]={item=weapon.ammo,count=math.min(rounds,500)} end
                 end
             end
         end
-        return service.change({op='migrate_weapons',actor=person.key},function(nextState)
-            local inv,err=d.inventory(nextState,person.key,true,options.now());if not inv then return false,err end
-            for key,value in pairs(items) do
-                local name,count=type(key)=='number' and value or key,type(key)=='number' and 1 or value
-                local ok,reason=d.add(nextState,inv,name,count,{});if not ok then return false,reason end
+        local summary={added=0,skipped=0}
+        local ok,err=service.change({op='migrate_weapons',actor=person.key},function(nextState)
+            local inv,reason=d.inventory(nextState,person.key,true,options.now());if not inv then return false,reason end
+            local function try(name,count) return d.canCarry(inv,name,count,{}) and d.add(nextState,inv,name,count,{}) end
+            local added={}
+            for _,name in ipairs(weapons) do
+                if try(name,1) then added[#added+1]=name;summary.added=summary.added+1 else summary.skipped=summary.skipped+1 end
+            end
+            for _,t in ipairs(throwables) do
+                if try(t.name,t.count) then summary.added=summary.added+1 else summary.skipped=summary.skipped+1 end
+            end
+            for _,name in ipairs(added) do
+                local a=ammo[name]
+                if a then for _,count in ipairs({a.count,100,24}) do if count<=a.count and try(a.item,count) then break end end end
             end
             return true
         end)
+        if not ok then return false,err end
+        return true,summary
     end
     -- Tiendas (config/shops.lua): comprar junto a un mostrador. Primero se comprueba que cabe, luego se cobra y se
     -- entrega; si la entrega fallase, se devuelve el dinero.

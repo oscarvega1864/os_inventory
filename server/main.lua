@@ -200,11 +200,14 @@ local function migrate(src)
     migrated[src]=person.key
     local ok,list=pcall(function() return exports[c.Identity.Resource]:GetCharacterWeapons(src) end)
     if not ok or type(list)~='table' or #list==0 then return end
-    local done,err=service.migrateWeapons(src,list)
+    local done,result=service.migrateWeapons(src,list)
     if done then
+        -- Lo que no cabia se descarta: la lista antigua se borra siempre y el aviso no se repite.
         pcall(function() exports[c.Identity.Resource]:ClearCharacterWeapons(src) end)
-        notify(src,'Tus armas guardadas ahora estan en el inventario como objetos.')
-    else migrated[src]=nil;notify(src,'No se pudieron pasar tus armas al inventario: '..tostring(err)..'. Libera espacio y reconecta.') end
+        local added,skipped=type(result)=='table' and result.added or 0,type(result)=='table' and result.skipped or 0
+        notify(src,skipped>0 and ('Armas antiguas pasadas al inventario: %d. Otras %d no cabian por peso y se han descartado.'):format(added,skipped)
+            or ('Tus %d armas guardadas ahora estan en el inventario como objetos.'):format(added))
+    else migrated[src]=nil;notify(src,'No se pudieron pasar tus armas al inventario: '..tostring(result)..'.') end
 end
 RegisterNetEvent('osinventory:weaponsReady',function() migrate(source) end)
 AddEventHandler('playerDropped',function() lastAmmo[source]=nil;migrated[source]=nil end)

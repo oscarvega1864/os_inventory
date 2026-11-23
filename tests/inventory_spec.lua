@@ -270,12 +270,16 @@ test('Fired rounds only ever reduce ammo, never below zero, and only for ammo it
     assert(not f.service.useAmmo(1,'agua',1) and f.count(1,'agua')==2)
     assert(not f.service.useAmmo(1,'ammo_rifle',-5) and not f.service.useAmmo(1,'ammo_rifle',0) and not f.service.useAmmo(1,'ammo_rifle',5000))
 end)
-test('Saved weapons from the old system become items with their ammo, all or nothing',function()
+test('Saved weapons from the old system become items with their ammo; what does not fit is left out',function()
     local f=fixture()
-    assert(f.service.migrateWeapons(1,{{name='WEAPON_PISTOL',ammo=36},{name='WEAPON_KNIFE',ammo=0},{name='WEAPON_GRENADE',ammo=3},{name='WEAPON_UNKNOWN',ammo=5}}))
+    local ok,summary=f.service.migrateWeapons(1,{{name='WEAPON_PISTOL',ammo=36},{name='WEAPON_KNIFE',ammo=0},{name='WEAPON_GRENADE',ammo=3},{name='WEAPON_UNKNOWN',ammo=5}})
+    assert(ok and summary.added==3 and summary.skipped==0)
     assert(f.count(1,'weapon_pistol')==1 and f.count(1,'ammo_pistol')==36 and f.count(1,'weapon_knife')==1 and f.count(1,'weapon_grenade')==3)
-    local g=fixture({slots=1});assert(not g.service.migrateWeapons(1,{{name='WEAPON_PISTOL',ammo=10},{name='WEAPON_KNIFE',ammo=0}}))
-    assert(g.count(1,'weapon_pistol')==0,'nothing is added when it does not all fit')
+    -- Un solo hueco: entra la primera arma; la otra (y la municion, sin sitio) se descarta sin bloquear.
+    local g=fixture({slots=1});ok,summary=g.service.migrateWeapons(1,{{name='WEAPON_PISTOL',ammo=10},{name='WEAPON_KNIFE',ammo=0}})
+    assert(ok and summary.added==1 and summary.skipped==1 and g.count(1,'weapon_pistol')==1 and g.count(1,'weapon_knife')==0)
+    -- Municion de mas: se limita a 500 balas por arma.
+    local h=fixture();assert(h.service.migrateWeapons(1,{{name='WEAPON_PISTOL',ammo=9937}}) and h.count(1,'ammo_pistol')==500)
 end)
 
 test('Ammu-Nation: only at a counter, listed items, valid amounts; charge then deliver, refund when it does not fit',function()

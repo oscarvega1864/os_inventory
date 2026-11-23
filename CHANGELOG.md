@@ -1,5 +1,10 @@
 # Changelog
 
+## Sin publicar
+
+- **Migración de armas antiguas sin atascos**: entran las armas que caben por peso (y su munición, hasta 500 balas por
+  arma); lo que no cabe se descarta y el aviso sale una sola vez con el resumen, en vez de repetirse en cada conexión.
+
 ## 0.2.0 — Inventario a pantalla completa, accesos rápidos y armas como objetos
 
 - **Seguimiento de objetos** con identidad propia (armas, llaves, tarjetas, herramientas): cada movimiento se envía a
