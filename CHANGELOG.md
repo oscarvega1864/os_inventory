@@ -1,6 +1,6 @@
 # Changelog
 
-## Sin publicar
+## 0.2.1 — Localizador usable y migración de armas sin atascos
 
 - **Migración de armas antiguas sin atascos**: entran las armas que caben por peso (y su munición, hasta 500 balas por
   arma); lo que no cabe se descarta y el aviso sale una sola vez con el resumen, en vez de repetirse en cada conexión.

@@ -15,7 +15,7 @@ end
 test('Manifest paths and all Lua syntax remain valid for the inventory',function()
     for _,file in ipairs(__files) do assert(loadfile('/repo/'..file),file) end
     local env={fx_version=function(v) assert(v=='cerulean') end,game=function(v) assert(v=='gta5') end,lua54=function() end,author=function() end,description=function() end,
-        version=function(v) assert(v=='0.2.0') end,shared_scripts=function(files) for _,file in ipairs(files) do assert(loadfile('/repo/'..file)) end end,
+        version=function(v) assert(v=='0.2.1') end,shared_scripts=function(files) for _,file in ipairs(files) do assert(loadfile('/repo/'..file)) end end,
         server_scripts=function(files) for _,file in ipairs(files) do assert(loadfile('/repo/'..file)) end end,client_scripts=function(files) for _,file in ipairs(files) do assert(loadfile('/repo/'..file)) end end,
         ui_page=function() end,files=function() end}
     assert(loadfile('/repo/fxmanifest.lua','t',env))()
