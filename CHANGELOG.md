@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — Inventario suspendido en eventos
+
+- **Eventos** (estado `osNoInventory`, lo pone os_coopchase): el inventario no se abre, los accesos rápidos no usan
+  objetos, el arma equipada se guarda y no se retiran las armas temporales del evento. El servidor también lo impide.
+- **Barra rápida de eventos** (`os_inventory:eventHotbar`): las teclas 1-6 sacan o guardan las armas que da el evento y
+  el HUD las muestra; al terminar vuelve la barra normal.
+
 ## 0.2.1 — Localizador usable y migración de armas sin atascos
 
 - **Migración de armas antiguas sin atascos**: entran las armas que caben por peso (y su munición, hasta 500 balas por

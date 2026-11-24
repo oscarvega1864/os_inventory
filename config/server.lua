@@ -1,6 +1,6 @@
 OSInventory=OSInventory or {}
 OSInventory.Config={
-    Version='0.2.0', Slots=30, MaxWeight=30, MaxSlots=120, MaxWeightGrams=1000000,
+    Version='0.3.0', Slots=30, MaxWeight=30, MaxSlots=120, MaxWeightGrams=1000000,
     MaxInventories=1000, MaxFileBytes=8*1024*1024, MaxDrops=256, ClearDropsRadius=50, MaxReceipts=4096, ReceiptDays=30, -- recibos de operaciones idempotentes: se retiran los de mas de ReceiptDays dias
     MaxAudit=512,
     MaxMutation=1000000, TransferDistance=3, PickupDistance=3, DropViewDistance=25, MaxViewedDrops=48,
