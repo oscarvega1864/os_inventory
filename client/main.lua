@@ -7,7 +7,11 @@ local function hide()
     if focused then SetNuiFocus(false,false);focused=false end
     OSInventory.Look.stop()
 end
+-- Evento (p. ej. persecucion de os_coopchase): el servidor marca el estado 'osNoInventory' y el inventario queda
+-- cerrado, sin accesos rapidos y sin retirar las armas temporales que da el evento.
+OSInventory.Suspended=function() return LocalPlayer~=nil and LocalPlayer.state.osNoInventory==true end
 local function canOpen()
+    if OSInventory.Suspended() then notify('El inventario no esta disponible durante el evento.');return false end
     return NetworkIsSessionStarted() and not IsEntityDead(PlayerPedId()) and not IsPauseMenuActive() and not IsNuiFocused()
 end
 local controller=OSInventory.Client.new({schedule=SetTimeout,canOpen=canOpen,notify=notify,
@@ -26,6 +30,13 @@ RegisterNetEvent('osinventory:response',function(id,response) if source==65535 t
 RegisterNetEvent('osinventory:notify',function(text) if source==65535 then notify(text) end end)
 RegisterNetEvent('osinventory:invalidated',function() if source==65535 then controller.refresh();OSInventory.Hotbar.request() end end)
 RegisterNetEvent('osinventory:forceClose',function() if source==65535 then controller.close() end end)
+if AddStateBagChangeHandler then
+    AddStateBagChangeHandler('osNoInventory',nil,function(bag,_,value)
+        if bag~=('player:%d'):format(GetPlayerServerId(PlayerId())) then return end
+        if value==true and controller.isOpen() then controller.close() end
+        OSInventory.Hotbar.request()
+    end)
+end
 RegisterNUICallback('close',function(_,callback) controller.close();callback({ok=true}) end)
 RegisterNUICallback('heartbeat',function(_,callback) heartbeat=GetGameTimer();callback({ok=true}) end)
 RegisterNUICallback('action',function(data,callback)

@@ -61,16 +61,20 @@ local function boot()
     if OSInventory.AdminRuntime then OSInventory.AdminSection.publish(OSInventory.AdminRuntime) end
 end
 AddEventHandler('onResourceStart',function(name) if name==resource then boot() end end)
+-- Durante un evento (estado 'osNoInventory', lo pone os_coopchase) no se abre ni se usa el inventario.
+local function suspended(src) local ok,value=pcall(function() return Player(src).state.osNoInventory end);return ok and value==true end
 RegisterNetEvent('osinventory:open',function(requestId)
     local src=source
     if not u.integer(requestId,1,2147483647) then return end
-    local response=service and service.open(src) or {ok=false,error='Inventario no disponible.'}
+    local response=(suspended(src) and {ok=false,error='El inventario no esta disponible durante el evento.'})
+        or (service and service.open(src)) or {ok=false,error='Inventario no disponible.'}
     TriggerClientEvent('osinventory:response',src,requestId,response)
 end)
 RegisterNetEvent('osinventory:request',function(requestId,packet)
     local src=source
     if not u.integer(requestId,1,2147483647) then return end
-    local response=service and service.request(src,packet) or {ok=false,error='Inventario no disponible.',close=true}
+    local response=(suspended(src) and {ok=false,error='El inventario no esta disponible durante el evento.',close=true})
+        or (service and service.request(src,packet)) or {ok=false,error='Inventario no disponible.',close=true}
     TriggerClientEvent('osinventory:response',src,requestId,response)
     if response.ok and packet.op~='refresh' then invalidate() end
 end)
@@ -172,12 +176,14 @@ RegisterNetEvent('osinventory:hotbar',function()
     if lastHotbar[src] and now-lastHotbar[src]<400 then return end
     lastHotbar[src]=now
     if not service then return end
+    -- Durante un evento la barra rapida (y el HUD) se ve vacia: el inventario no esta disponible.
+    if suspended(src) then return TriggerClientEvent('osinventory:hotbar',src,{slots={},arsenal={weapons={},ammo={}}}) end
     local data=service.hotbar(src)
     if data then TriggerClientEvent('osinventory:hotbar',src,data) end
 end)
 RegisterNetEvent('osinventory:quickUse',function(slot)
     local src=source
-    if not service then return end
+    if not service or suspended(src) then return end
     local ok,err=service.quickUse(src,slot)
     if not ok then notify(src,err or 'No se pudo usar.') end
     TriggerClientEvent('osinventory:quickUsed',src,slot,ok==true)

@@ -25,6 +25,7 @@ local last=0
 for slot=1,config.HotbarSlots do
     RegisterCommand('accesorapido'..slot,function()
         if IsNuiFocused() or IsPauseMenuActive() or IsEntityDead(PlayerPedId()) then return end
+        if OSInventory.Suspended and OSInventory.Suspended() then return end
         if GetGameTimer()-last<400 then return end
         last=GetGameTimer()
         TriggerServerEvent('osinventory:quickUse',slot)
@@ -40,7 +41,9 @@ CreateThread(function()
     if not config.BlockWeaponKeys then return end
     while true do
         Wait(0)
-        for _,control in ipairs(WEAPON_KEYS) do DisableControlAction(0,control,true) end
+        if not (OSInventory.Suspended and OSInventory.Suspended()) then
+            for _,control in ipairs(WEAPON_KEYS) do DisableControlAction(0,control,true) end
+        end
     end
 end)
 -- os_hud pide el contenido al arrancar (puede iniciarse despues que este recurso).

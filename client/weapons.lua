@@ -37,6 +37,7 @@ end
 
 RegisterNetEvent('osinventory:equip',function(data)
     if source~=65535 or type(data)~='table' or type(data.hash)~='string' then return end
+    if OSInventory.Suspended and OSInventory.Suspended() then return end
     if equipped and equipped.id==data.id then holster() else draw(data) end
 end)
 
@@ -56,6 +57,7 @@ CreateThread(function()
     while true do
         Wait(250)
         local ped=PlayerPedId()
+        if equipped and OSInventory.Suspended and OSInventory.Suspended() then holster() end -- al entrar en un evento se guarda
         if equipped then
             if IsEntityDead(ped) or not HasPedGotWeapon(ped,equipped.hash,false) then
                 flush(true);equipped=nil
@@ -75,7 +77,7 @@ CreateThread(function()
     while true do
         Wait(1000)
         local ped=PlayerPedId()
-        if not IsEntityDead(ped) then
+        if not IsEntityDead(ped) and not (OSInventory.Suspended and OSInventory.Suspended()) then
             local _,current=GetCurrentPedWeapon(ped,true)
             if current~=UNARMED and current~=0 and not (equipped and current==equipped.hash) then RemoveWeaponFromPed(ped,current) end
             for name in pairs(OSWeapons.ByHash) do
